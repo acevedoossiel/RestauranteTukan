@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Barbacoa Jan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+</head>
+
+<body class="bg-gray-100 h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border-t-8 border-orange-600">
+        <div class="p-8">
+            <div class="text-center mb-8">
+                <span class="text-5xl">🐐</span>
+                <h1 class="text-3xl font-black text-gray-800 uppercase tracking-tighter mt-2">
+                    Barbacoa <span class="text-orange-600">Jan</span>
+                </h1>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Panel Administrativo</p>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label
+                        class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Usuario</label>
+                    <input type="text" id="user"
+                        class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 focus:border-orange-500 focus:outline-none transition-all"
+                        placeholder="Ingresa usuario">
+                </div>
+                <div>
+                    <label
+                        class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-1">Contraseña</label>
+                    <input type="password" id="pass"
+                        class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 font-bold text-gray-700 focus:border-orange-500 focus:outline-none transition-all"
+                        placeholder="Ingresa contraseña">
+                </div>
+                <div id="error-msg" class="hidden text-red-500 text-xs font-bold text-center animate-pulse">
+                    ⚠️ Usuario o contraseña incorrectos
+                </div>
+                <button onclick="intentarLogin()"
+                    class="w-full bg-gray-800 hover:bg-orange-600 text-white font-black py-5 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
+                    Entrar al Sistema
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = CONFIG.API_URL;
+
+        async function intentarLogin() {
+            const user = document.getElementById('user').value;
+            const pass = document.getElementById('pass').value;
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pass })
+                });
+
+                const data = await res.json();
+                console.log("Respuesta del servidor:", data); // Mira esto en tu consola
+
+                if (data.success) {
+                    sessionStorage.setItem('admin_token', data.token);
+                    console.log("Login exitoso, redirigiendo...");
+                    // Usamos replace para que no puedan volver atrás al login con el botón del cel
+                    window.location.replace('admin_panel.html');
+                } else {
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error detallado:", err);
+                alert("Error de conexión con el servidor");
+            }
+        }
+    </script>
+</body>
+
+</html>

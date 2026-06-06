@@ -1,0 +1,927 @@
+<!-- <!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesero - Barbacoa Jan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-4 pb-20" onload="actualizarEstadoMesas()">
+
+    <div id="vista-mesas">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-black uppercase text-gray-700">Barbacoa Jan 🐐</h1>
+            <button onclick="gestionarMesas()"
+                class="bg-gray-800 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase italic">Config
+                Mesas</button>
+        </div>
+        <div id="contenedor-mesas" class="grid grid-cols-2 gap-4">
+        </div>
+    </div>
+
+    <div id="vista-menu" class="hidden">
+        <div class="flex justify-between items-center mb-4">
+            <button id="btn-atras"
+                class="bg-gray-800 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest">←
+                Atrás</button>
+            <span id="label-mesa" class="text-xl font-black text-blue-600"></span>
+        </div>
+
+        <div id="grid-botones" class="grid grid-cols-2 gap-3 mb-6"></div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-xl border-t-4 border-blue-600 sticky bottom-4">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Resumen por enviar:
+            </h3>
+            <ul id="lista-orden" class="mb-4 text-sm font-bold text-gray-800 space-y-2"></ul>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="abrirConfirmacion()"
+                    class="bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">Enviar
+                    📩</button>
+                <button onclick="cobrar()"
+                    class="bg-red-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">Cobrar
+                    💰</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-confirmar"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-8">
+            <h2 class="text-xl font-black text-center mb-4 uppercase">¿Confirmar Comanda?</h2>
+            <div id="resumen-final"
+                class="bg-gray-50 p-4 rounded-xl mb-6 text-sm font-bold text-gray-700 max-h-60 overflow-y-auto"></div>
+            <div class="flex gap-2">
+                <button onclick="cerrarModal()"
+                    class="flex-1 bg-gray-200 py-4 rounded-xl font-black text-xs uppercase">Corregir</button>
+                <button onclick="enviarComanda()"
+                    class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const API = CONFIG.API_URL;
+        let mesaSel = 0, itemsEnDB = [], itemsNuevos = [];
+
+        // 1. MESAS DINÁMICAS
+        async function actualizarEstadoMesas() {
+            try {
+                const resMesas = await fetch(`${API}/api/mesas`);
+                const mesas = await resMesas.json();
+                const resActivas = await fetch(`${API}/mesas_activas`);
+                const ocupadas = await resActivas.json();
+
+                const cont = document.getElementById('contenedor-mesas');
+                cont.innerHTML = mesas.map(m => {
+                    const esOcupada = ocupadas.includes(m);
+                    return `
+                        <button id="m${m}" onclick="irAMenu(${m})"
+                            class="h-28 rounded-2xl text-xl font-bold shadow-md border-b-4 transition-all active:scale-95
+                            ${esOcupada ? 'bg-white border-red-500 text-red-600' : 'bg-white border-green-500 text-green-600'}">
+                            MESA ${m}
+                        </button>`;
+                }).join('');
+            } catch (e) { console.error("Error al actualizar mesas", e); }
+        }
+
+        async function gestionarMesas() {
+            const accion = prompt("1. Agregar Mesa\n2. Eliminar Mesa\nEscribe el número:");
+            if (accion === "1") {
+                const n = prompt("Número de mesa:");
+                if (n) await fetch(`${API}/api/mesas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numero: n }) });
+            } else if (accion === "2") {
+                const n = prompt("Número de mesa a borrar:");
+                if (n) {
+                    const res = await fetch(`${API}/api/mesas/${n}`, { method: 'DELETE' });
+                    if (!res.ok) { const err = await res.json(); alert(err.error); }
+                }
+            }
+            location.reload();
+        }
+
+        async function irAMenu(n) {
+            mesaSel = n;
+            itemsNuevos = []; // Limpiar orden nueva al entrar
+            document.getElementById('label-mesa').innerText = `MESA ${n}`;
+            document.getElementById('vista-mesas').classList.add('hidden');
+            document.getElementById('vista-menu').classList.remove('hidden');
+
+            const res = await fetch(`${API}/cuenta/${n}`);
+            itemsEnDB = await res.json();
+            actualizarResumen();
+            mostrarCategorias();
+        }
+
+        async function mostrarCategorias() {
+            const g = document.getElementById('grid-botones');
+            document.getElementById('btn-atras').onclick = () => location.reload();
+            g.innerHTML = '<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">Categorías</p>';
+            const res = await fetch(`${API}/api/categorias`);
+            const categorias = await res.json();
+            categorias.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = "bg-blue-500 text-white p-5 rounded-2xl font-bold uppercase shadow-md active:scale-95";
+                btn.innerText = c.nombre;
+                btn.onclick = () => mostrarSubOProductos(c.id, c.nombre);
+                g.appendChild(btn);
+            });
+        }
+
+        async function mostrarSubOProductos(catId, catNombre) {
+            const g = document.getElementById('grid-botones');
+            document.getElementById('btn-atras').onclick = () => mostrarCategorias();
+            g.innerHTML = `<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">${catNombre}</p>`;
+            const resSub = await fetch(`${API}/api/subcategorias/${catId}`);
+            const subcategorias = await resSub.json();
+            const resMenu = await fetch(`${API}/api/menu_admin`);
+            const menuTotal = await resMenu.json();
+            const productosDirectos = menuTotal.filter(p => Number(p.categoria_id) === Number(catId) && Number(p.subcategoria_id || 0) === 0);
+
+            subcategorias.forEach(s => {
+                const btn = document.createElement('button');
+                btn.className = "bg-orange-500 text-white p-5 rounded-2xl font-bold uppercase shadow-md active:scale-95";
+                btn.innerText = s.nombre;
+                btn.onclick = () => mostrarProductosDeSub(s.id, catId, s.nombre);
+                g.appendChild(btn);
+            });
+            productosDirectos.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = "bg-green-600 text-white p-5 rounded-2xl font-bold uppercase shadow-md active:scale-95";
+                btn.innerHTML = `${p.nombre}<br><span class="text-[10px] opacity-80">$${p.precio}</span>`;
+                btn.onclick = () => add(p.nombre);
+                g.appendChild(btn);
+            });
+        }
+
+        async function mostrarProductosDeSub(subId, catId, subNombre) {
+            const g = document.getElementById('grid-botones');
+            document.getElementById('btn-atras').onclick = () => mostrarSubOProductos(catId, "");
+            g.innerHTML = `<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">${subNombre}</p>`;
+            const res = await fetch(`${API}/api/menu_admin`);
+            const menuTotal = await res.json();
+            const filtrados = menuTotal.filter(p => Number(p.subcategoria_id) === Number(subId));
+            filtrados.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = "bg-green-600 text-white p-5 rounded-2xl font-bold uppercase shadow-md active:scale-95";
+                btn.innerHTML = `${p.nombre}<br><span class="text-[10px] opacity-80">$${p.precio}</span>`;
+                btn.onclick = () => add(p.nombre);
+                g.appendChild(btn);
+            });
+        }
+
+        // 2. AGREGAR Y ELIMINAR PRODUCTOS DE LA ORDEN
+        function add(nombre) {
+            const existe = itemsNuevos.find(i => i.nombre === nombre);
+            if (existe) { existe.cant++; }
+            else { itemsNuevos.push({ nombre: nombre, cant: 1 }); }
+            actualizarResumen();
+        }
+
+        function cambiarCant(nombre, delta) {
+            const item = itemsNuevos.find(i => i.nombre === nombre);
+            if (item) {
+                item.cant += delta;
+                if (item.cant <= 0) {
+                    itemsNuevos = itemsNuevos.filter(i => i.nombre !== nombre);
+                }
+            }
+            actualizarResumen();
+        }
+
+        function actualizarResumen() {
+            const conteoDB = {};
+            itemsEnDB.forEach(x => conteoDB[x] = (conteoDB[x] || 0) + 1);
+
+            let html = Object.entries(conteoDB).map(([n, c]) => `
+                <li class="text-gray-400 italic">x${c} ${n} <small>(en cocina)</small></li>
+            `).join('');
+
+            html += itemsNuevos.map(i => `
+                <li class="flex justify-between items-center bg-blue-50 p-2 rounded-lg border border-blue-100">
+                    <span>${i.nombre}</span>
+                    <div class="flex items-center gap-3">
+                        <button onclick="cambiarCant('${i.nombre}', -1)" class="w-7 h-7 bg-white rounded-full shadow text-red-500">-</button>
+                        <span class="text-blue-600">x${i.cant}</span>
+                        <button onclick="cambiarCant('${i.nombre}', 1)" class="w-7 h-7 bg-white rounded-full shadow text-green-600">+</button>
+                    </div>
+                </li>
+            `).join('');
+            document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-gray-300 py-2">Vacío</p>';
+        }
+
+        // 3. CONFIRMACIÓN DE COMANDA
+        function abrirConfirmacion() {
+            if (!itemsNuevos.length) return;
+            const resumen = itemsNuevos.map(i => `• ${i.cant}x ${i.nombre}`).join('<br>');
+            document.getElementById('resumen-final').innerHTML = resumen;
+            document.getElementById('modal-confirmar').classList.remove('hidden');
+        }
+
+        function cerrarModal() { document.getElementById('modal-confirmar').classList.add('hidden'); }
+
+        async function enviarComanda() {
+            const itemsParaEnviar = [];
+            itemsNuevos.forEach(i => {
+                for (let k = 0; k < i.cant; k++) itemsParaEnviar.push({ display: i.nombre, base: i.nombre });
+            });
+
+            const textoCocina = `MESA ${mesaSel}:<br>` + itemsNuevos.map(i => `x${i.cant} ${i.nombre}`).join("<br>");
+
+            await fetch(`${API}/enviar_comanda`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar, textoCocina: textoCocina })
+            });
+            location.reload();
+        }
+
+        async function cobrar() {
+            const res = await fetch(`${API}/cerrar_cuenta`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mesa: mesaSel })
+            });
+            const d = await res.json();
+            alert("TOTAL A COBRAR: $" + d.total);
+            location.reload();
+        }
+
+        setInterval(async () => {
+            // Solo actualizamos si la vista de mesas es visible (no está en un menú)
+            const vistaMesas = document.getElementById('vista-mesas');
+            if (vistaMesas && !vistaMesas.classList.contains('hidden')) {
+                console.log("Sincronizando estado de mesas...");
+                await actualizarEstadoMesas();
+            }
+        }, 5000);
+    </script>
+</body>
+
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesero POS - Tukan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto">
+
+    <div id="vista-mesas">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <h1 class="text-2xl font-black uppercase text-gray-700 tracking-tighter">Bar El Tukan</h1>
+
+            <div class="flex w-full sm:w-auto justify-start sm:justify-end gap-1.5">
+                <button onclick="crearPedidoLlevar()"
+                    class="flex-1 sm:flex-none bg-blue-600 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
+                    🥡 Para Llevar
+                </button>
+                <button onclick="gestionarMesas()"
+                    class="flex-1 sm:flex-none bg-gray-800 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
+                    Config Mesas
+                </button>
+            </div>
+        </div>
+
+        <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Pedidos para llevar
+            activos:</h3>
+        <div id="contenedor-llevar" class="grid grid-cols-3 gap-2 mb-6"></div>
+
+        <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Mesas en Salón:</h3>
+        <div id="contenedor-mesas" class="grid grid-cols-2 gap-4"></div>
+    </div>
+
+    <div id="vista-menu" class="hidden">
+        <div class="flex justify-between items-center mb-4">
+            <button id="btn-atras"
+                class="bg-gray-800 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest">←
+                Atrás</button>
+            <span id="label-mesa" class="text-xl font-black text-blue-600"></span>
+        </div>
+
+        <div id="grid-botones" class="grid grid-cols-2 gap-3 mb-6"></div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-xl border-t-4 border-blue-600 sticky bottom-4">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Resumen del pedido:
+            </h3>
+            <ul id="lista-orden" class="mb-4 text-sm font-bold text-gray-800 space-y-2 max-h-40 overflow-y-auto"></ul>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="abrirConfirmacion()"
+                    class="bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">Enviar
+                    📩</button>
+                <button onclick="abrirFlujoCobro()"
+                    class="bg-green-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">Cobrar
+                    💰</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-modificadores"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
+            <h2 id="mod-producto-titulo" class="text-lg font-black uppercase text-gray-800 mb-1"></h2>
+            <p class="text-xs text-gray-400 font-bold uppercase mb-4 tracking-wider">Personalizar producto</p>
+
+            <div id="contenedor-mods-checks" class="space-y-2 mb-4"></div>
+
+            <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Notas especiales (Alergias /
+                Excepciones):</label>
+            <input type="text" id="mod-nota-libre" placeholder="Ej: Sin pimienta, sin mostaza..."
+                class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none mb-6">
+
+            <div class="flex gap-2">
+                <button onclick="cerrarModalModificadores()"
+                    class="flex-1 bg-gray-200 py-3 rounded-xl font-black text-xs uppercase">Cancelar</button>
+                <button onclick="confirmarAgregadoProducto()"
+                    class="flex-1 bg-green-600 text-white py-3 rounded-xl font-black text-xs uppercase shadow-md">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-confirmar"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-8">
+            <h2 class="text-xl font-black text-center mb-4 uppercase">¿Confirmar Comanda?</h2>
+            <div id="resumen-final"
+                class="bg-gray-50 p-4 rounded-xl mb-6 text-xs font-mono text-gray-700 max-h-60 overflow-y-auto space-y-1">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="cerrarModal()"
+                    class="flex-1 bg-gray-200 py-4 rounded-xl font-black text-xs uppercase">Corregir</button>
+                <button onclick="enviarComanda()"
+                    class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-cobrar"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] overflow-y-auto">
+            <h2 class="text-xl font-black uppercase text-gray-800 mb-1">Cierre de Cuenta</h2>
+            <p class="text-xs text-gray-400 font-bold uppercase mb-4 tracking-wider">Mesa/Folio: <span
+                    id="span-mesa-cobro"></span></p>
+
+            <div class="mb-4">
+                <label class="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 cursor-pointer">
+                    <input type="checkbox" id="chk-cuenta-separada" onchange="toggleModoSeparado(this.checked)"
+                        class="w-4 h-4 text-blue-600">
+                    <span class="text-xs font-black uppercase text-gray-700">Dividir cuenta por consumo</span>
+                </label>
+            </div>
+
+            <div id="seccion-articulos-cobro" class="space-y-2 mb-6">
+                <p class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Selecciona los productos que
+                    paga esta persona:</p>
+                <div id="lista-checks-cobro" class="space-y-2 max-h-52 overflow-y-auto p-1"></div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('modal-cobrar').classList.add('hidden')"
+                    class="flex-1 bg-gray-200 py-4 rounded-xl font-black text-xs uppercase">Atrás</button>
+                <button id="btn-ejecutar-cobro" onclick="procesarCobroFinal()"
+                    class="flex-1 bg-green-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const API = CONFIG.API_URL;
+        let mesaSel = "", itemsEnDB = [], itemsNuevos = [], menuGlobal = [];
+        let productoEnPersonalizacion = null;
+
+        // 1. SINCRONIZACIÓN HÍBRIDA DE MESAS Y FOLIOS PARA LLEVAR
+        async function actualizarEstadoMesas() {
+            try {
+                const resMesas = await fetch(`${API}/api/mesas`);
+                const mesas = await resMesas.json();
+                const resActivas = await fetch(`${API}/mesas_activas`);
+                const activas = await resActivas.json();
+
+                // Separar mesas físicas de folios para llevar (los que inician con 'L-')
+                const ocupadasFisicas = activas.filter(m => !m.toString().startsWith('L-'));
+                const foliosLlevar = activas.filter(m => m.toString().startsWith('L-'));
+
+                // Renderizar Mesas de Salón
+                document.getElementById('contenedor-mesas').innerHTML = mesas.map(m => {
+                    const esOcupada = ocupadasFisicas.includes(m.toString());
+                    return `
+                        <button onclick="irAMenu('${m}')"
+                            class="h-24 rounded-2xl text-lg font-black shadow-md border-b-4 transition-all active:scale-95
+                            ${esOcupada ? 'bg-white border-red-500 text-red-600' : 'bg-white border-green-500 text-green-600'}">
+                            MESA ${m}
+                        </button>`;
+                }).join('');
+
+                // Renderizar Folios Para Llevar Activos
+                const contLlevar = document.getElementById('contenedor-llevar');
+                if (foliosLlevar.length === 0) {
+                    contLlevar.innerHTML = '<p class="col-span-3 text-center text-gray-300 text-[10px] font-bold uppercase py-2">Ninguno</p>';
+                } else {
+                    contLlevar.innerHTML = foliosLlevar.map(f => `
+                        <button onclick="irAMenu('${f}')" class="bg-white border-b-4 border-orange-500 text-orange-600 p-3 rounded-xl font-black text-xs shadow-sm active:scale-95">
+                            🥡 ${f}
+                        </button>
+                    `).join('');
+                }
+            } catch (e) { console.error("Error de sincronización", e); }
+        }
+
+        async function crearPedidoLlevar() {
+            // Generar consecutivo dinámico basado en la hora para que sea un ID único para llevar
+            const numeroFolio = "L-" + Math.floor(10 + Math.random() * 90);
+            irAMenu(numeroFolio);
+        }
+
+        // async function gestionarMesas() {
+        //     const accion = prompt("1. Agregar Mesa\n2. Eliminar Mesa\nEscribe el número:");
+        //     if (accion === "1") {
+        //         const n = prompt("Número de mesa:");
+        //         if (n) await fetch(`${API}/api/mesas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numero: n }) });
+        //     } else if (accion === "2") {
+        //         const n = prompt("Número de mesa a borrar:");
+        //         if (n) {
+        //             const res = await fetch(`${API}/api/mesas/${n}`, { method: 'DELETE' });
+        //             if (!res.ok) { const err = await res.json(); alert(err.error); }
+        //         }
+        //     }
+        //     actualizarEstadoMesas();
+        // }
+
+        async function gestionarMesas() {
+            const accion = prompt("1. Agregar Mesa\n2. Eliminar Mesa\nEscribe el número:");
+            if (accion === "1") {
+                const n = prompt("Número de mesa:");
+                if (n && !isNaN(n)) {
+                    await fetch(`${API}/api/mesas`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ numero: parseInt(n) })
+                    });
+                    actualizarEstadoMesas();
+                }
+            } else if (accion === "2") {
+                const n = prompt("Número de mesa a borrar:");
+                if (n && !isNaN(n)) {
+                    const numeroMesa = parseInt(n); // Forzamos que sea un número entero
+                    const res = await fetch(`${API}/api/mesas/${numeroMesa}`, { method: 'DELETE' });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        alert(err.error);
+                    } else {
+                        // Forzar la actualización visual inmediata en la pantalla
+                        actualizarEstadoMesas();
+                    }
+                }
+            }
+        }
+
+        // 2. CONTROL DEL MENÚ
+        async function irAMenu(n) {
+            mesaSel = n.toString();
+            itemsNuevos = [];
+            document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `MESA ${mesaSel}`;
+            document.getElementById('vista-mesas').classList.add('hidden');
+            document.getElementById('vista-menu').classList.remove('hidden');
+
+            const res = await fetch(`${API}/cuenta/${mesaSel}`);
+            itemsEnDB = await res.json(); // Ahora recupera objetos completos con modificadores/notas
+            actualizarResumen();
+            mostrarCategorias();
+        }
+
+        async function mostrarCategorias() {
+            const g = document.getElementById('grid-botones');
+            document.getElementById('btn-atras').onclick = () => { document.getElementById('vista-menu').classList.add('hidden'); document.getElementById('vista-mesas').classList.remove('hidden'); actualizarEstadoMesas(); };
+            g.innerHTML = '<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">Categorías</p>';
+
+            const resCat = await fetch(`${API}/api/categorias`);
+            const categorias = await resCat.json();
+            const resMenu = await fetch(`${API}/api/menu_admin`);
+            menuGlobal = await resMenu.json(); // Guardamos el menú con sus modificadores inyectados
+
+            categorias.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = "bg-blue-500 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95 transition-all";
+                btn.innerText = c.nombre;
+                btn.onclick = () => mostrarSubOProductos(c.id, c.nombre);
+                g.appendChild(btn);
+            });
+        }
+
+        function mostrarSubOProductos(catId, catNombre) {
+            const g = document.getElementById('grid-botones');
+            document.getElementById('btn-atras').onclick = () => mostrarCategorias();
+            g.innerHTML = `<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">${catNombre}</p>`;
+
+            // Filtrar subcategorías en base a la global
+            fetch(`${API}/api/subcategorias/${catId}`).then(r => r.json()).then(subcategorias => {
+                const productosDirectos = menuGlobal.filter(p => Number(p.categoria_id) === Number(catId) && Number(p.subcategoria_id || 0) === 0);
+
+                subcategorias.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-orange-500 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95";
+                    btn.innerText = s.nombre;
+                    btn.onclick = () => mostrarProductosDeSub(s.id, catId, s.nombre);
+                    g.appendChild(btn);
+                });
+                productosDirectos.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-green-600 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95";
+                    btn.innerHTML = `${p.nombre}<br><span class="text-[10px] opacity-80">$${p.precio}</span>`;
+                    btn.onclick = () => lanzarPersonalizador(p);
+                    g.appendChild(btn);
+                });
+            });
+        }
+
+        function mostrarProductosDeSub(subId, catId, subNombre) {
+            const g = document.getElementById('grid-botones');
+            document.getElementById('btn-atras').onclick = () => mostrarSubOProductos(catId, "");
+            g.innerHTML = `<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">${subNombre}</p>`;
+
+            const filtrados = menuGlobal.filter(p => Number(p.subcategoria_id) === Number(subId));
+            filtrados.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = "bg-green-600 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95";
+                btn.innerHTML = `${p.nombre}<br><span class="text-[10px] opacity-80">$${p.precio}</span>`;
+                btn.onclick = () => lanzarPersonalizador(p);
+                g.appendChild(btn);
+            });
+        }
+
+        // 3. CAPA DE INTERFAZ DE MODIFICADORES
+        // function lanzarPersonalizador(producto) {
+        //     productoEnPersonalizacion = producto;
+        //     document.getElementById('mod-producto-titulo').innerText = producto.nombre;
+        //     document.getElementById('mod-nota-libre').value = "";
+
+        //     const contChecks = document.getElementById('contenedor-mods-checks');
+        //     if (!producto.modificadores || producto.modificadores.length === 0) {
+        //         contChecks.innerHTML = '<p class="text-center text-gray-400 text-xs font-bold py-2">Sin modificadores comunes</p>';
+        //     } else {
+        //         contChecks.innerHTML = producto.modificadores.map((m, index) => `
+        //             <label class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100">
+        //                 <div class="flex items-center gap-2">
+        //                     <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-blue-600 rounded">
+        //                     <span class="text-xs font-bold text-gray-700">${m.nombre}</span>
+        //                 </div>
+        //                 <span class="text-xs font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
+        //                     ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
+        //                 </span>
+        //             </label>
+        //         `).join('');
+        //     }
+        //     document.getElementById('modal-modificadores').classList.remove('hidden');
+        // }
+
+
+        function lanzarPersonalizador(producto) {
+            productoEnPersonalizacion = producto;
+
+            // ATAJO INTELIGENTE: Si no tiene modificadores configurados, lo agregamos directo sin modal
+            if (!producto.modificadores || producto.modificadores.length === 0) {
+                confirmarAgregadoDirecto();
+            } else {
+                // Si tiene modificaciones (ej. Alitas con salsas), abrimos el modal obligatoriamente
+                document.getElementById('mod-producto-titulo').innerText = producto.nombre;
+                document.getElementById('mod-nota-libre').value = "";
+
+                const contChecks = document.getElementById('contenedor-mods-checks');
+                contChecks.innerHTML = producto.modificadores.map((m, index) => `
+            <label class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-blue-600 rounded">
+                    <span class="text-xs font-bold text-gray-700">${m.nombre}</span>
+                </div>
+                <span class="text-xs font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
+                    ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
+                </span>
+            </label>
+        `).join('');
+                document.getElementById('modal-modificadores').classList.remove('hidden');
+            }
+        }
+
+        function confirmarAgregadoDirecto() {
+            // Buscamos si ya existe una línea idéntica (mismo nombre, sin modificadores y sin nota)
+            const existe = itemsNuevos.find(i =>
+                i.nombre === productoEnPersonalizacion.nombre &&
+                i.modificadores.length === 0 &&
+                i.nota === ""
+            );
+
+            if (existe) {
+                existe.cant++;
+            } else {
+                itemsNuevos.push({
+                    nombre: productoEnPersonalizacion.nombre,
+                    modificadores: [],
+                    nota: "",
+                    cant: 1 // Agregamos propiedad de cantidad para control de botones + y -
+                });
+            }
+            actualizarResumen();
+        }
+
+
+        function cerrarModalModificadores() { document.getElementById('modal-modificadores').classList.add('hidden'); productoEnPersonalizacion = null; }
+
+        // function confirmarAgregadoProducto() {
+        //     const checks = document.querySelectorAll('input[name="mod-check"]:checked');
+        //     const modsSeleccionados = [];
+        //     checks.forEach(c => {
+        //         const modObjeto = productoEnPersonalizacion.modificadores[parseInt(c.value)];
+        //         modsSeleccionados.push(modObjeto);
+        //     });
+
+        //     const notaLibre = document.getElementById('mod-nota-libre').value.trim();
+
+        //     // Insertar directamente a la lista de elementos nuevos
+        //     itemsNuevos.push({
+        //         nombre: productoEnPersonalizacion.nombre,
+        //         modificadores: modsSeleccionados,
+        //         nota: notaLibre
+        //     });
+
+        //     cerrarModalModificadores();
+        //     actualizarResumen();
+        // }
+
+
+        function confirmarAgregadoProducto() {
+            const checks = document.querySelectorAll('input[name="mod-check"]:checked');
+            const modsSeleccionados = [];
+            checks.forEach(c => {
+                const modObjeto = productoEnPersonalizacion.modificadores[parseInt(c.value)];
+                modsSeleccionados.push(modObjeto);
+            });
+
+            const notaLibre = document.getElementById('mod-nota-libre').value.trim();
+
+            // Generamos una llave única de coincidencia basada en sus modificaciones elegidas
+            const modsIds = modsSeleccionados.map(m => m.id).sort().join('-');
+
+            // Buscamos si ya existe una línea exactamente idéntica con los mismos hielos o notas
+            const existe = itemsNuevos.find(i =>
+                i.nombre === productoEnPersonalizacion.nombre &&
+                i.nota === notaLibre &&
+                i.modificadores.map(m => m.id).sort().join('-') === modsIds
+            );
+
+            if (existe) {
+                existe.cant++;
+            } else {
+                itemsNuevos.push({
+                    nombre: productoEnPersonalizacion.nombre,
+                    modificadores: modsSeleccionados,
+                    nota: notaLibre,
+                    cant: 1
+                });
+            }
+
+            cerrarModalModificadores();
+            actualizarResumen();
+        }
+
+
+        function removerItemNuevo(index) {
+            itemsNuevos.splice(index, 1);
+            actualizarResumen();
+        }
+
+        function cambiarCantNuevo(index, delta) {
+            itemsNuevos[index].cant += delta;
+            if (itemsNuevos[index].cant <= 0) {
+                itemsNuevos.splice(index, 1); // Si baja de 1, lo eliminamos de la orden
+            }
+            actualizarResumen();
+        }
+
+        // function actualizarResumen() {
+        //     let html = itemsEnDB.map(item => {
+        //         const mods = JSON.parse(item.modificadores || '[]');
+        //         let sublinea = mods.map(m => m.nombre).join(', ');
+        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+        //         return `
+        //             <li class="text-gray-400 italic bg-gray-50 p-2 rounded-lg border border-gray-100">
+        //                 <div class="flex justify-between">
+        //                     <span>• 1x ${item.producto} <small>(en proceso)</small></span>
+        //                 </div>
+        //                 ${sublinea ? `<div class="text-[10px] text-gray-400 font-bold ml-3 mt-0.5">${sublinea}</div>` : ''}
+        //             </li>`;
+        //     }).join('');
+
+        //     html += itemsNuevos.map((i, index) => {
+        //         let sublinea = i.modificadores.map(m => m.nombre).join(', ');
+        //         if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
+        //         return `
+        //             <li class="bg-blue-50 p-2 rounded-lg border border-blue-100 flex flex-col">
+        //                 <div class="flex justify-between items-center">
+        //                     <span class="text-blue-900">${i.nombre}</span>
+        //                     <button onclick="removerItemNuevo(${index})" class="text-xs bg-white text-red-500 font-black px-2 py-1 rounded-md border border-red-100 shadow-sm">Quitar</button>
+        //                 </div>
+        //                 ${sublinea ? `<div class="text-[10px] text-blue-500 font-bold ml-1 mt-0.5">↳ ${sublinea}</div>` : ''}
+        //             </li>`;
+        //     }).join('');
+
+        //     document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-gray-300 py-2">Sin productos pendientes</p>';
+        // }
+
+
+        function actualizarResumen() {
+            // 1. Mostrar lo que ya está guardado firmemente en la DB de la mesa
+            let html = itemsEnDB.map(item => {
+                const mods = JSON.parse(item.modificadores || '[]');
+                let sublinea = mods.map(m => m.nombre).join(', ');
+                if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+                return `
+            <li class="text-gray-400 italic bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <div class="flex justify-between">
+                    <span>• 1x ${item.producto} <small>(en proceso)</small></span>
+                </div>
+                ${sublinea ? `<div class="text-[10px] text-gray-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+            </li>`;
+            }).join('');
+
+            // 2. Mostrar lo nuevo por enviar agrupado de forma inteligente con botones + y -
+            html += itemsNuevos.map((i, index) => {
+                let sublinea = i.modificadores.map(m => m.nombre).join(', ');
+                if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
+                return `
+            <li class="bg-blue-50 p-2 rounded-lg border border-blue-100 flex flex-col">
+                <div class="flex justify-between items-center">
+                    <span class="text-blue-900 font-black">${i.nombre}</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="cambiarCantNuevo(${index}, -1)" class="w-6 h-6 bg-white rounded-full shadow text-red-500 font-black flex items-center justify-center border border-red-100 text-xs active:scale-90">-</button>
+                        <span class="text-blue-600 text-xs font-black px-1">x${i.cant}</span>
+                        <button onclick="cambiarCantNuevo(${index}, 1)" class="w-6 h-6 bg-white rounded-full shadow text-green-600 font-black flex items-center justify-center border border-green-100 text-xs active:scale-90">+</button>
+                    </div>
+                </div>
+                ${sublinea ? `<div class="text-[10px] text-blue-500 font-bold ml-1 mt-0.5">↳ ${sublinea}</div>` : ''}
+            </li>`;
+            }).join('');
+
+            document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-gray-300 py-2">Sin productos pendientes</p>';
+        }
+
+        // 4. ENVÍO DE COMANDAS A LA RED
+        function abrirConfirmacion() {
+            if (!itemsNuevos.length) return;
+            document.getElementById('resumen-final').innerHTML = itemsNuevos.map(i => {
+                let txt = `• 1x ${i.nombre}`;
+                if (i.modificadores.length) txt += ` (${i.modificadores.map(m => m.nombre).join(',')})`;
+                if (i.nota) txt += ` [${i.nota}]`;
+                return `<div>${txt}</div>`;
+            }).join('');
+            document.getElementById('modal-confirmar').classList.remove('hidden');
+        }
+
+        function cerrarModal() { document.getElementById('modal-confirmar').classList.add('hidden'); }
+
+        // async function enviarComanda() {
+        //     const itemsParaEnviar = itemsNuevos.map(i => ({
+        //         display: i.nombre,
+        //         base: i.nombre,
+        //         modificadores: i.modificadores,
+        //         nota: i.nota
+        //     }));
+
+        //     await fetch(`${API}/enviar_comanda`, {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar })
+        //     });
+        //     location.reload();
+        // }
+
+        async function enviarComanda() {
+            const itemsParaEnviar = [];
+
+            itemsNuevos.forEach(i => {
+                for (let k = 0; k < i.cant; k++) {
+                    itemsParaEnviar.push({
+                        display: i.nombre,
+                        base: i.nombre,
+                        modificadores: i.modificadores,
+                        nota: i.nota
+                    });
+                }
+            });
+
+            await fetch(`${API}/enviar_comanda`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar })
+            });
+            location.reload();
+        }
+
+        // 5. FLUJO DE COBRO INTERACTIVO (CUENTAS DIVIDIDAS POR CONSUMO)
+        function abrirFlujoCobro() {
+            if (itemsEnDB.length === 0) return alert("Esta mesa no tiene consumos registrados.");
+            document.getElementById('span-mesa-cobro').innerText = mesaSel;
+            document.getElementById('chk-cuenta-separada').checked = false;
+
+            toggleModoSeparado(false);
+            document.getElementById('modal-cobrar').classList.remove('hidden');
+        }
+
+        function toggleModoSeparado(esSeparada) {
+            const contLista = document.getElementById('lista-checks-cobro');
+            const btnCobro = document.getElementById('btn-ejecutar-cobro');
+
+            if (esSeparada) {
+                btnCobro.innerText = "Cobrar Parte Seleccionada 💳";
+                contLista.innerHTML = itemsEnDB.map(item => {
+                    const mods = JSON.parse(item.modificadores || '[]');
+                    let detalle = mods.map(m => m.nombre).join(', ');
+                    if (item.nota) detalle += (detalle ? ' | ' : '') + item.nota;
+                    return `
+                        <label class="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100">
+                            <input type="checkbox" name="item-cobro-check" value="${item.id}" class="w-4 h-4 text-green-600">
+                            <div class="text-xs">
+                                <div class="font-bold text-gray-800">${item.producto}</div>
+                                ${detalle ? `<div class="text-[10px] text-gray-400 font-bold">${detalle}</div>` : ''}
+                            </div>
+                        </label>
+                    `;
+                }).join('');
+                document.getElementById('seccion-articulos-cobro').classList.remove('hidden');
+            } else {
+                btnCobro.innerText = "Cobrar Cuenta Completa 💰";
+                document.getElementById('seccion-articulos-cobro').classList.add('hidden');
+            }
+        }
+
+        async function procesarCobroFinal() {
+            const esSeparada = document.getElementById('chk-cuenta-separada').checked;
+
+            if (!esSeparada) {
+                // Cobro completo regular
+                if (confirm(`¿Liquidar la cuenta total de la mesa ${mesaSel}?`)) {
+                    const res = await fetch(`${API}/cerrar_cuenta`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mesa: mesaSel })
+                    });
+                    const d = await res.json();
+                    alert("CUENTA TOTAL PAGADA: $" + d.total.toFixed(2));
+                    location.reload();
+                }
+            } else {
+                // Cobro parcial por consumo selectivo
+                const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
+                if (checks.length === 0) return alert("Por favor, selecciona al menos un artículo para cobrar.");
+
+                // Mapear los elementos seleccionados para pasárselos al nuevo endpoint del backend
+                const itemsACobrar = [];
+                checks.forEach(c => {
+                    const idBuscado = parseInt(c.value);
+                    const objetoDb = itemsEnDB.find(item => item.id === idBuscado);
+                    if (objetoDb) itemsACobrar.push(objetoDb);
+                });
+
+                if (confirm(`¿Procesar el cobro de los ${itemsACobrar.length} artículos seleccionados?`)) {
+                    const res = await fetch(`${API}/api/cobrar_parcial`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mesa: mesaSel, itemsACobrar: itemsACobrar })
+                    });
+
+                    if (res.ok) {
+                        const d = await res.json();
+                        alert("PARTE LIQUIDADA CON ÉXITO: $" + d.total.toFixed(2));
+                        location.reload(); // Se refresca para actualizar el remanente en la DB
+                    } else { alert("Ocurrió un fallo al procesar el cobro parcial."); }
+                }
+            }
+        }
+
+        // Monitor en segundo plano para sincronizar movimientos de otros meseros
+        setInterval(async () => {
+            const vistaMesas = document.getElementById('vista-mesas');
+            if (vistaMesas && !vistaMesas.classList.contains('hidden')) {
+                await actualizarEstadoMesas();
+            }
+        }, 5000);
+    </script>
+</body>
+
+</html>
