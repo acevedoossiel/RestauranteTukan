@@ -64,12 +64,11 @@
                 });
 
                 const data = await res.json();
-                console.log("Respuesta del servidor:", data); // Mira esto en tu consola
+                console.log("Respuesta del servidor:", data);
 
                 if (data.success) {
                     sessionStorage.setItem('admin_token', data.token);
                     console.log("Login exitoso, redirigiendo...");
-                    // Usamos replace para que no puedan volver atrás al login con el botón del cel
                     window.location.replace('admin_panel.html');
                 } else {
                     errorDiv.classList.remove('hidden');

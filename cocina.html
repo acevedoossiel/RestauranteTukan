@@ -1,90 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cocina e Impresión 👩‍🍳</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @media print {
-            @page {
-                size: 80mm auto;
-                margin: 0;
-            }
-
-            body {
-                background: white;
-                margin: 0;
-                padding: 0;
-                width: 80mm;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            .ticket {
-                width: 100% !important;
-                max-width: 100% !important;
-                box-shadow: none !important;
-                border: none !important;
-                background: white !important;
-                padding: 5px !important;
-            }
-        }
-    </style>
-</head>
-
-<body class="bg-zinc-900 p-6 flex flex-col items-center">
-
-    <h1 class="text-zinc-500 font-bold mb-10 tracking-widest uppercase no-print">Monitor de Cocina / Impresora</h1>
-
-    <div id="ticket-container" class="bg-yellow-100 text-black p-4 rounded-sm shadow-2xl w-full max-w-[58mm] ticket">
-        <p class="text-center font-mono text-[10px] border-b border-black mb-4 pb-2 italic">*** BARBACOA JAN ***</p>
-        <div id="contenido" class="ticket-text font-black font-mono uppercase text-center leading-tight">ESPERANDO
-            PEDIDO...</div>
-        <p id="fecha-ticket" class="text-center font-mono text-[9px] mt-4"></p>
-        <p class="text-center font-mono text-[10px] border-t border-black mt-6 pt-2 text-zinc-400">--- FIN DE TICKET ---
-        </p>
-    </div>
-
-    <script src="config.js"></script>
-    <script>
-        const API = CONFIG.API_URL;
-        let ultima = "Esperando pedido...";
-
-        setInterval(async () => {
-            try {
-                const res = await fetch(`${API}/cocina`);
-                const data = await res.json();
-
-                // Si el mensaje cambió y NO es el mensaje de espera
-                if (data.comanda !== ultima && data.comanda !== "Esperando pedido...") {
-
-                    document.getElementById('contenido').innerHTML = data.comanda;
-                    document.getElementById('fecha-ticket').innerText = new Date().toLocaleString();
-                    ultima = data.comanda;
-
-                    // Vibrar en móvil
-                    window.navigator.vibrate(500);
-
-                    // MANDAR A IMPRESORA AUTOMÁTICAMENTE
-                    // Solo imprimimos si es una comanda real o un cierre de cuenta
-                    if (data.comanda.includes("MESA")) {
-                        setTimeout(() => {
-                            window.print();
-                        }, 500);
-                    }
-                }
-            } catch (e) { }
-        }, 800);
-    </script>
-</body>
-
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="es">
 
@@ -166,6 +79,7 @@
         const API = CONFIG.API_URL;
         let modoOperacion = localStorage.getItem('modo_cocina') || 'impresora';
         let idsComandasProcesadas = new Set();
+        let checkboxesMarcadosCocina = new Set();
 
         function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
@@ -178,7 +92,7 @@
             if (modo === 'impresora') {
                 bPrint.className = "bg-amber-500 text-black px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md";
                 bTablet.className = "text-zinc-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold uppercase";
-                contVisual.classList.add('opacity-40'); // Opacar la vista para denotar que el control lo tiene la ticketera
+                contVisual.classList.add('opacity-40');
             } else {
                 bTablet.className = "bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md";
                 bPrint.className = "text-zinc-400 hover:text-white px-4 py-2 rounded-xl text-xs font-bold uppercase";
@@ -191,7 +105,6 @@
                 const res = await fetch(`${API}/api/comandas/cocina`);
                 const comandas = await res.json();
 
-                // 1. MANEJO EXCLUSIVO DEL MODO IMPRESORA
                 if (modoOperacion === 'impresora' && comandas.length > 0) {
                     for (let c of comandas) {
                         if (!idsComandasProcesadas.has(c.id)) {
@@ -201,7 +114,6 @@
                     }
                 }
 
-                // 2. RENDERIZADO VISUAL PARA MODO TABLET (CHECKLIST)
                 renderizarPantallaTablet(comandas);
 
             } catch (e) { console.error(e); }
@@ -210,25 +122,40 @@
         function ejecutarImpresionTermica(c) {
             const zona = document.getElementById('zona-invisible-impresion');
 
-            // Reestructurar los ítems agrupándolos con sus modificadores identados abajo
-            const itemsHtml = c.items.map(i => {
+            const itemsAgrupados = {};
+            c.items.forEach(item => {
+                const modsTexto = item.modificadores.map(m => m.nombre).sort().join(',');
+                const llaveUnica = `${item.producto}|${modsTexto}|${item.nota || ''}`;
+
+                if (itemsAgrupados[llaveUnica]) {
+                    itemsAgrupados[llaveUnica].cantidad++;
+                } else {
+                    itemsAgrupados[llaveUnica] = {
+                        producto: item.producto,
+                        modificadores: item.modificadores,
+                        nota: item.nota,
+                        cantidad: 1
+                    };
+                }
+            });
+
+            const itemsHtml = Object.values(itemsAgrupados).map(i => {
                 let subtext = i.modificadores.map(m => `  + ${m.nombre}`).join('<br>');
                 if (i.nota) subtext += (subtext ? '<br>' : '') + `  * NOTA: ${i.nota}`;
-                return `<div class="font-black text-sm uppercase">x1 ${i.producto}</div>
-                        ${subtext ? `<div class="text-xs font-mono text-zinc-700 ml-4 mb-1">${subtext}</div>` : ''}`;
+                return `<div class="font-black text-sm uppercase">x${i.cantidad} ${i.producto}</div>
+                ${subtext ? `<div class="text-xs font-mono text-zinc-700 ml-4 mb-1">${subtext}</div>` : ''}`;
             }).join('<br>');
 
             zona.innerHTML = `
-                <div class="ticket-impresion text-center font-mono">
-                    <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA COCINA ***</p>
-                    <h2 class="text-xl font-black uppercase mb-1">${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</h2>
-                    <p class="text-[10px] text-zinc-600 mb-4">${c.fecha}</p>
-                    <div class="text-left border-b border-black pb-2 mb-2">${itemsHtml}</div>
-                    <p class="text-[9px] text-zinc-400">--- SISTEMA TUKAN POS ---</p>
-                </div>
-            `;
+        <div class="ticket-impresion text-center font-mono">
+            <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA COCINA ***</p>
+            <h2 class="text-xl font-black uppercase mb-1">${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</h2>
+            <p class="text-[10px] text-zinc-600 mb-4">${c.fecha}</p>
+            <div class="text-left border-b border-black pb-2 mb-2">${itemsHtml}</div>
+            <p class="text-[9px] text-zinc-400">--- SISTEMA TUKAN POS ---</p>
+        </div>
+    `;
 
-            // Remover clases de ocultación momentáneamente para mandar a la cola de hardware
             document.body.classList.add('overflow-hidden');
             zona.classList.remove('hidden');
 
@@ -236,8 +163,6 @@
                 window.print();
                 zona.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
-
-                // Avisarle de inmediato al servidor que esta comanda ya se imprimió para sacarla de la cola
                 marcarCompletada(c.id);
             }, 300);
         }
@@ -252,43 +177,86 @@
             contenedor.innerHTML = comandas.map((c, idxComanda) => {
                 const esLlevar = c.mesa.startsWith('L-');
 
-                const listaItems = c.items.map((item, idxItem) => {
+                const itemsAgrupados = {};
+                c.items.forEach(item => {
+                    const modsTexto = item.modificadores.map(m => m.nombre).sort().join(',');
+                    const llaveUnica = `${item.producto}|${modsTexto}|${item.nota || ''}`;
+
+                    if (itemsAgrupados[llaveUnica]) {
+                        itemsAgrupados[llaveUnica].cantidad++;
+                    } else {
+                        itemsAgrupados[llaveUnica] = {
+                            producto: item.producto,
+                            modificadores: item.modificadores,
+                            nota: item.nota,
+                            cantidad: 1
+                        };
+                    }
+                });
+
+                const listaItems = Object.values(itemsAgrupados).map(item => {
                     let detalle = item.modificadores.map(m => m.nombre).join(', ');
                     if (item.nota) detalle += (detalle ? ' | ' : '') + item.nota;
+
+                    const idControlFila = `${c.id}-${item.producto}-${item.nota || 'sin-nota'}`;
+                    const estaChecado = checkboxesMarcadosCocina.has(idControlFila) ? 'checked' : '';
+
                     return `
-                        <label class="flex items-start gap-2.5 p-2 bg-zinc-800 rounded-xl border border-zinc-700/50 cursor-pointer hover:bg-zinc-750">
-                            <input type="checkbox" class="w-4 h-4 text-amber-500 rounded bg-zinc-700 border-zinc-600 mt-0.5">
-                            <div class="text-xs">
-                                <div class="font-black uppercase text-zinc-100">${item.producto}</div>
-                                ${detalle ? `<div class="text-[10px] text-zinc-400 font-bold font-mono mt-0.5">↳ ${detalle}</div>` : ''}
-                            </div>
-                        </label>
-                    `;
+                <label class="flex items-start gap-2.5 p-2 bg-zinc-800 rounded-xl border border-zinc-700/50 cursor-pointer hover:bg-zinc-750">
+                    <input type="checkbox" 
+                        onchange="guardarEstadoCheckCocina('${idControlFila}', this.checked)" 
+                        ${estaChecado} 
+                        class="w-4 h-4 text-amber-500 rounded bg-zinc-700 border-zinc-600 mt-0.5">
+                    <div class="text-xs">
+                        <div class="font-black uppercase text-zinc-100">
+                            <span class="text-amber-500 font-mono mr-1">x${item.cantidad}</span> ${item.producto}
+                        </div>
+                        ${detalle ? `<div class="text-[10px] text-zinc-400 font-bold font-mono mt-0.5">↳ ${detalle}</div>` : ''}
+                    </div>
+                </label>
+            `;
                 }).join('');
 
                 return `
-                    <div class="bg-zinc-900 border-2 ${esLlevar ? 'border-orange-500/60' : 'border-zinc-800'} p-4 rounded-3xl shadow-xl flex flex-col justify-between h-fit gap-4">
-                        <div>
-                            <div class="flex justify-between items-start border-b border-zinc-800 pb-2 mb-3">
-                                <h3 class="text-base font-black ${esLlevar ? 'text-orange-500' : 'text-zinc-200'} uppercase">${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</h3>
-                                <span class="text-[10px] font-mono text-zinc-500 font-bold">${c.fecha}</span>
-                            </div>
-                            <div class="space-y-1.5">${listaItems}</div>
-                        </div>
-                        <button onclick="marcarCompletada('${c.id}')" class="w-full py-3 rounded-xl font-black text-xs uppercase shadow-md transition active:scale-95
-                            ${esLlevar ? 'bg-orange-600 hover:bg-orange-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-zinc-950'}">
-                            ✓ Terminar Orden
-                        </button>
+            <div class="bg-zinc-900 border-2 ${esLlevar ? 'border-orange-500/60' : 'border-zinc-800'} p-4 rounded-3xl shadow-xl flex flex-col justify-between h-fit gap-4">
+                <div>
+                    <div class="flex justify-between items-start border-b border-zinc-800 pb-2 mb-3">
+                        <h3 class="text-base font-black ${esLlevar ? 'text-orange-500' : 'text-zinc-200'} uppercase">${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</h3>
+                        <span class="text-[10px] font-mono text-zinc-500 font-bold">${c.fecha}</span>
                     </div>
-                `;
+                    <div class="space-y-1.5">${listaItems}</div>
+                </div>
+                <button onclick="marcarCompletada('${c.id}')" class="w-full py-3 rounded-xl font-black text-xs uppercase shadow-md transition active:scale-95
+                    ${esLlevar ? 'bg-orange-600 hover:bg-orange-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-zinc-950'}">
+                    ✓ Terminar Orden
+                </button>
+            </div>
+        `;
             }).join('');
         }
 
+        function guardarEstadoCheckCocina(idFila, isChecked) {
+            if (isChecked) {
+                checkboxesMarcadosCocina.add(idFila);
+            } else {
+                checkboxesMarcadosCocina.delete(idFila);
+            }
+        }
+
+        // async function marcarCompletada(id) {
+        //     await fetch(`${API}/api/comandas/completar`, {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify({ id: id, destino: 'cocina' })
+        //     });
+        //     consultarComandas();
+        //     if (!document.getElementById('panel-historial').classList.contains('hidden')) cargarHistorial();
+        // }
         async function marcarCompletada(id) {
             await fetch(`${API}/api/comandas/completar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, destino: 'cocina' })
+                body: JSON.stringify({ id: id }) // Eliminamos envío de destino, el ID ya sabe a dónde va
             });
             consultarComandas();
             if (!document.getElementById('panel-historial').classList.contains('hidden')) cargarHistorial();
@@ -300,53 +268,155 @@
             if (!panel.classList.contains('hidden')) cargarHistorial();
         }
 
+        // async function cargarHistorial() {
+        //     try {
+        //         const res = await fetch(`${API}/api/comandas/historial`);
+        //         const datos = await res.json();
+        //         const deCocina = datos.filter(c => c.destinoCierre === 'cocina').reverse().slice(0, 9);
+
+        //         const cont = document.getElementById('lista-historial-recuperacion');
+        //         if (deCocina.length === 0) {
+        //             cont.innerHTML = '<p class="col-span-full text-zinc-500 font-bold italic">No hay comandas despachadas en esta sesión.</p>';
+        //             return;
+        //         }
+
+        //         cont.innerHTML = deCocina.map(c => {
+        //             const resumenProductos = c.items.map(i => i.producto).join(', ');
+        //             const esLlevar = c.mesa.startsWith('L-');
+
+        //             return `
+        //         <div class="bg-zinc-900 border border-zinc-700/60 p-3 rounded-xl flex flex-col justify-between gap-2 shadow-inner">
+        //             <div class="flex justify-between items-start">
+        //                 <div>
+        //                     <span class="font-black uppercase ${esLlevar ? 'text-orange-400' : 'text-amber-500'} text-sm">
+        //                         ${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}
+        //                     </span>
+        //                     <span class="text-[9px] text-zinc-500 block font-mono font-bold">Archivado: ${c.fechaCierre.split(' ')[1] || c.fechaCierre}</span>
+        //                 </div>
+        //                 <button onclick="recuperarComanda('${c.id}')" class="bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-amber-500 border border-zinc-700 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider text-[10px] transition-all active:scale-95">
+        //                     Reabrir
+        //             </button>
+        //             </div>
+        //             <div class="text-[10px] text-zinc-400 font-medium line-clamp-2 border-t border-zinc-800/60 pt-1.5 uppercase font-mono tracking-wide">
+        //                 📦 ${resumenProductos}
+        //             </div>
+        //         </div>
+        //     `;
+        //         }).join('');
+        //     } catch (e) {
+        //         console.error("Error cargando historial de cocina:", e);
+        //     }
+        // }
         async function cargarHistorial() {
-            const res = await fetch(`${API}/api/comandas/historial`);
-            const datos = await res.json();
-            const deCocina = datos.filter(c => c.destinoCierre === 'cocina').reverse().slice(0, 9); // Mostrar últimas 9 por espacio
+            try {
+                const res = await fetch(`${API}/api/comandas_sistema/historial`);
+                const datos = await res.json();
+                const deCocina = datos.filter(c => c.destinoCierre === 'cocina');
 
-            const cont = document.getElementById('lista-historial-recuperacion');
-            if (deCocina.length === 0) {
-                cont.innerHTML = '<p class="col-span-full text-zinc-500 font-bold italic">No hay comandas archivadas recientemente.</p>';
-                return;
-            }
+                const cont = document.getElementById('lista-historial-recuperacion');
 
-            cont.innerHTML = deCocina.map(c => `
-                <div class="bg-zinc-900 border border-zinc-700 p-3 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="font-black uppercase text-zinc-300">${c.mesa}</span>
-                        <span class="text-[9px] text-zinc-500 block">Archivado: ${c.fechaCierre}</span>
+                // Inyección del botón de limpieza manual al principio de la fila
+                let htmlHistorial = `
+            <div class="col-span-full mb-2 flex justify-end">
+                <button onclick="purgarHistorialCompleto()" class="bg-red-950 text-red-400 border border-red-900/60 hover:bg-red-900 hover:text-white px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition">
+                    🗑️ Limpiar Todo el Historial
+                </button>
+            </div>
+        `;
+
+                if (deCocina.length === 0) {
+                    cont.innerHTML = htmlHistorial + '<p class="col-span-full text-zinc-500 font-bold italic p-2">No hay comandas despachadas en esta sesión.</p>';
+                    return;
+                }
+
+                htmlHistorial += deCocina.map(c => {
+                    const resumenProductos = c.items.map(i => i.producto).join(', ');
+                    const esLlevar = c.mesa.startsWith('L-');
+                    return `
+                <div class="bg-zinc-900 border border-zinc-700/60 p-3 rounded-xl flex flex-col justify-between gap-2 shadow-inner">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="font-black uppercase ${esLlevar ? 'text-orange-400' : 'text-amber-500'} text-sm">${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</span>
+                            <span class="text-[9px] text-zinc-500 block font-mono font-bold">Creación: ${c.fecha} | Fin: ${c.fechaCierre}</span>
+                        </div>
+                        <button onclick="recuperarComanda('${c.id}')" class="bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-amber-500 border border-zinc-700 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider text-[10px] transition active:scale-95">Reabrir</button>
                     </div>
-                    <button onclick="recuperarComanda('${c.id}')" class="bg-zinc-800 hover:bg-zinc-700 text-blue-400 px-2.5 py-1.5 rounded-lg font-bold uppercase tracking-wider text-[10px]">Reabrir</button>
+                    <div class="text-[10px] text-zinc-400 font-medium line-clamp-2 border-t border-zinc-800/60 pt-1.5 uppercase font-mono tracking-wide">📦 ${resumenProductos}</div>
                 </div>
-            `).join('');
+            `;
+                }).join('');
+
+                cont.innerHTML = htmlHistorial;
+            } catch (e) { console.error(e); }
         }
 
-        // Recuperar comanda archivada en caso de dar clic accidental
+        // async function recuperarComanda(id) {
+        //     try {
+        //         const res = await fetch(`${API}/api/comandas/historial`);
+        //         const datos = await res.json();
+        //         const encontrada = datos.find(c => c.id === id);
+
+        //         if (encontrada) {
+        //             // Formateamos manteniendo la estructura exacta de modificadores nativos
+        //             const itemsFormateados = encontrada.items.map(i => ({
+        //                 display: i.producto,
+        //                 base: i.producto,
+        //                 modificadores: i.modificadores || [],
+        //                 nota: i.nota || ""
+        //             }));
+
+        //             const respuestaReabrir = await fetch(`${API}/api/comandas/reabrir`, {
+        //                 method: 'POST',
+        //                 headers: { 'Content-Type': 'application/json' },
+        //                 body: JSON.stringify({
+        //                     mesa: encontrada.mesa,
+        //                     items: itemsFormateados,
+        //                     destinoOrigen: 'cocina'
+        //                 })
+        //             });
+
+        //             if (respuestaReabrir.ok) {
+        //                 // Al reabrir con éxito, removemos la comanda vieja del historial en memoria local 
+        //                 // para que desaparezca de este panel de recuperación inmediatamente
+        //                 const resHistorial = await fetch(`${API}/api/comandas/historial`);
+        //                 const historialCompleto = await resHistorial.json();
+        //                 const indexHistorial = historialCompleto.findIndex(h => h.id === id);
+        //                 if (indexHistorial > -1) {
+        //                     historialCompleto.splice(indexHistorial, 1);
+        //                 }
+
+        //                 alert("Comanda regresada al monitor de Cocina sin alterar la cuenta.");
+        //                 location.reload();
+        //             } else {
+        //                 alert("Error al procesar la reapertura en el servidor.");
+        //             }
+        //         }
+        //     } catch (err) {
+        //         console.error("Error en flujo de recuperación cocina:", err);
+        //     }
+        // }
+
         async function recuperarComanda(id) {
-            // Nota de diseño: Para no crear una ruta compleja, la mandamos al servidor como comanda nueva reusando su estructura
-            const res = await fetch(`${API}/api/comandas/historial`);
-            const datos = await res.json();
-            const encontrada = datos.find(c => c.id === id);
-
-            if (encontrada) {
-                // Formatear ítems para volverlos a inyectar al servidor
-                const itemsFormateados = encontrada.items.map(i => ({ display: i.producto, base: i.producto, modificadores: i.modificadores, nota: i.nota }));
-
-                // Remover del historial en memoria del servidor mandando solicitud de re-inyección
-                await fetch(`${API}/enviar_comanda`, {
+            if (confirm("¿Quieres regresar esta comanda al monitor activo? Conservará su hora original de creación.")) {
+                const res = await fetch(`${API}/api/comandas/reabrir`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mesa: encontrada.mesa, items: itemsFormateados })
+                    body: JSON.stringify({ id: id })
                 });
-
-                // Limpiar del historial global remoto para no duplicar
-                alert("Comanda reabierta con éxito en el monitor.");
-                location.reload();
+                if (res.ok) {
+                    consultarComandas();
+                    cargarHistorial();
+                }
             }
         }
 
-        // Inicialización y Polling dinámico a 800ms para respuesta inmediata
+        async function purgarHistorialCompleto() {
+            if (confirm("¿Estás seguro de vaciar el historial de todas las comandas completadas? Esta acción limpiará la memoria tanto en Cocina como en Barra.")) {
+                await fetch(`${API}/api/comandas_sistema/purgar_historial`, { method: 'DELETE' });
+                cargarHistorial();
+            }
+        }
+
         window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 800); };
     </script>
 </body>
