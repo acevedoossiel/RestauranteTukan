@@ -5,6 +5,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - El Tukan Restaurante</title>
+
+    <script>
+        function obtenerCookie(nombre) {
+            const coincidencia = document.cookie.match(new RegExp('(^| )' + nombre + '=([^;]+)'));
+            return coincidencia ? coincidencia[2] : null;
+        }
+
+        const sesionCookie = obtenerCookie('admin_session');
+        const loginTime = sessionStorage.getItem('login_time');
+        if (sesionCookie && loginTime) {
+            const doceHorasEnMiliseundos = 12 * 60 * 60 * 1000;
+            const tiempoTranscurrido = Date.now() - parseInt(loginTime);
+            
+            if (tiempoTranscurrido < doceHorasEnMiliseundos) {
+                console.log("Sesión activa y válida detectada. Redirigiendo al panel...");
+                window.location.replace('admin_panel.html');
+            }
+        }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="config.js"></script>
     <style>
@@ -93,6 +113,8 @@
 
                 if (data.success) {
                     sessionStorage.setItem('admin_token', data.token);
+                    sessionStorage.setItem('login_time', Date.now().toString());
+                    document.cookie = "admin_session=" + data.token + "; path=/;";
                     console.log("Login exitoso, redirigiendo...");
                     window.location.replace('admin_panel.html');
                 } else {

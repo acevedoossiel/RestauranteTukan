@@ -12,123 +12,118 @@
         }
     </style>
 </head>
-
-<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto">
-
-    <div id="vista-mesas">
+<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative" style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
+    
+    <div class="fixed inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+    <div id="vista-mesas" class="relative z-10">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 class="text-2xl font-black uppercase text-gray-700 tracking-tighter">Bar El Tukan</h1>
+            <h1 class="text-2xl font-black uppercase text-emerald-950 tracking-tighter">Bar El Tukan</h1>
 
             <div class="flex w-full sm:w-auto justify-start sm:justify-end gap-1.5">
                 <button onclick="crearPedidoLlevar()"
-                    class="flex-1 sm:flex-none bg-blue-600 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
+                    class="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm shadow-orange-500/10 whitespace-nowrap active:scale-95 transition-all">
                     🥡 Para Llevar
                 </button>
                 <button onclick="gestionarMesas()"
-                    class="flex-1 sm:flex-none bg-gray-800 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
+                    class="flex-1 sm:flex-none bg-emerald-900 hover:bg-emerald-950 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
                     Config Mesas
                 </button>
             </div>
         </div>
 
-        <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Pedidos para llevar
-            activos:</h3>
+        <h3 class="text-[10px] font-black text-emerald-800/60 uppercase mb-2 tracking-widest italic">Pedidos para llevar activos:</h3>
         <div id="contenedor-llevar" class="grid grid-cols-3 gap-2 mb-6"></div>
 
-        <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Mesas en Salón:</h3>
+        <h3 class="text-[10px] font-black text-emerald-800/60 uppercase mb-2 tracking-widest italic">Mesas en Salón:</h3>
         <div id="contenedor-mesas" class="grid grid-cols-2 gap-4"></div>
     </div>
 
-    <div id="vista-menu" class="hidden">
+    <div id="vista-menu" class="hidden relative z-10">
         <div class="flex justify-between items-center mb-4">
             <button id="btn-atras"
-                class="bg-gray-800 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest">←
+                class="bg-emerald-900 hover:bg-emerald-950 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">←
                 Atrás</button>
-            <span id="label-mesa" class="text-xl font-black text-blue-600"></span>
+            <span id="label-mesa" class="text-xl font-black text-emerald-900"></span>
         </div>
 
         <div id="grid-botones" class="grid grid-cols-2 gap-3 mb-6"></div>
 
-        <div class="bg-white p-4 rounded-2xl shadow-xl border-t-4 border-blue-600 sticky bottom-4">
-            <h3 class="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest italic">Resumen del pedido:
-            </h3>
-            <ul id="lista-orden" class="mb-4 text-sm font-bold text-gray-800 space-y-2 max-h-40 overflow-y-auto"></ul>
+        <div class="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-2xl border-t-4 border-orange-500 sticky bottom-4">
+            <h3 class="text-[10px] font-black text-slate-400 Pall uppercase mb-2 tracking-widest italic">Resumen del pedido:</h3>
+            <ul id="lista-orden" class="mb-4 text-sm font-bold text-slate-800 space-y-2 max-h-40 overflow-y-auto"></ul>
 
             <div class="grid grid-cols-2 gap-2">
                 <button onclick="abrirConfirmacion()"
-                    class="bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">Enviar
+                    class="bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md shadow-orange-500/10 active:scale-95 transition-all">Enviar
                     📩</button>
                 <button onclick="abrirFlujoCobro()"
-                    class="bg-green-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">Cobrar
+                    class="bg-emerald-800 hover:bg-emerald-900 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md shadow-emerald-800/10 active:scale-95 transition-all">Cobrar
                     💰</button>
             </div>
         </div>
     </div>
 
     <div id="modal-modificadores"
-        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto">
-            <h2 id="mod-producto-titulo" class="text-lg font-black uppercase text-gray-800 mb-1"></h2>
-            <p class="text-xs text-gray-400 font-bold uppercase mb-4 tracking-wider">Personalizar producto</p>
+        class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto border border-slate-100 shadow-2xl">
+            <h2 id="mod-producto-titulo" class="text-lg font-black uppercase text-emerald-950 mb-1"></h2>
+            <p class="text-xs text-slate-400 font-bold uppercase mb-4 tracking-wider">Personalizar producto</p>
 
             <div id="contenedor-mods-checks" class="space-y-2 mb-4"></div>
 
-            <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Notas especiales (Alergias /
-                Excepciones):</label>
+            <label class="text-[10px] font-black uppercase text-slate-400 block mb-1">Notas especiales (Alergias / Excepciones):</label>
             <input type="text" id="mod-nota-libre" placeholder="Ej: Sin pimienta, sin mostaza..."
-                class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none mb-6">
+                class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none mb-6 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 transition-all">
 
             <div class="flex gap-2">
                 <button onclick="cerrarModalModificadores()"
-                    class="flex-1 bg-gray-200 py-3 rounded-xl font-black text-xs uppercase">Cancelar</button>
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-xl font-black text-xs uppercase transition-all">Cancelar</button>
                 <button onclick="confirmarAgregadoProducto()"
-                    class="flex-1 bg-green-600 text-white py-3 rounded-xl font-black text-xs uppercase shadow-md">Agregar</button>
+                    class="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-3 rounded-xl font-black text-xs uppercase shadow-md transition-all">Agregar</button>
             </div>
         </div>
     </div>
 
     <div id="modal-confirmar"
-        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] p-8">
-            <h2 class="text-xl font-black text-center mb-4 uppercase">¿Confirmar Comanda?</h2>
+        class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-8 border border-slate-100 shadow-2xl">
+            <h2 class="text-xl font-black text-center mb-4 uppercase text-emerald-950">¿Confirmar Comanda?</h2>
             <div id="resumen-final"
-                class="bg-gray-50 p-4 rounded-xl mb-6 text-xs font-mono text-gray-700 max-h-60 overflow-y-auto space-y-1">
+                class="bg-slate-50 p-4 rounded-xl mb-6 text-xs font-mono text-slate-700 max-h-60 overflow-y-auto space-y-1 border border-slate-100">
             </div>
             <div class="flex gap-2">
                 <button onclick="cerrarModal()"
-                    class="flex-1 bg-gray-200 py-4 rounded-xl font-black text-xs uppercase">Corregir</button>
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Corregir</button>
                 <button onclick="enviarComanda()"
-                    class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg">Confirmar</button>
+                    class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">Confirmar</button>
             </div>
         </div>
     </div>
 
     <div id="modal-cobrar"
-        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] overflow-y-auto">
-            <h2 class="text-xl font-black uppercase text-gray-800 mb-1">Cierre de Cuenta</h2>
-            <p class="text-xs text-gray-400 font-bold uppercase mb-4 tracking-wider">Mesa/Folio: <span
-                    id="span-mesa-cobro"></span></p>
+        class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] overflow-y-auto border border-slate-100 shadow-2xl">
+            <h2 class="text-xl font-black uppercase text-emerald-950 mb-1">Cierre de Cuenta</h2>
+            <p class="text-xs text-slate-400 font-bold uppercase mb-4 tracking-wider">Mesa/Folio: <span id="span-mesa-cobro" class="text-orange-500"></span></p>
 
             <div class="mb-4">
-                <label class="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 cursor-pointer">
+                <label class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-100 transition-all">
                     <input type="checkbox" id="chk-cuenta-separada" onchange="toggleModoSeparado(this.checked)"
-                        class="w-4 h-4 text-blue-600">
-                    <span class="text-xs font-black uppercase text-gray-700">Dividir cuenta por consumo</span>
+                        class="w-4 h-4 text-emerald-800 rounded bg-white border-slate-300 focus:ring-0">
+                    <span class="text-xs font-black uppercase text-slate-700">Dividir cuenta por consumo</span>
                 </label>
             </div>
 
             <div id="seccion-articulos-cobro" class="space-y-2 mb-6">
-                <p class="text-[10px] font-black uppercase text-gray-400 tracking-wider">Selecciona los productos que
-                    paga esta persona:</p>
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Selecciona los productos que paga esta persona:</p>
                 <div id="lista-checks-cobro" class="space-y-2 max-h-52 overflow-y-auto p-1"></div>
             </div>
 
             <div class="flex gap-2">
                 <button onclick="document.getElementById('modal-cobrar').classList.add('hidden')"
-                    class="flex-1 bg-gray-200 py-4 rounded-xl font-black text-xs uppercase">Atrás</button>
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Atrás</button>
                 <button id="btn-ejecutar-cobro" onclick="procesarCobroFinal()"
-                    class="flex-1 bg-green-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg"></button>
+                    class="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-800/10 transition-all"></button>
             </div>
         </div>
     </div>
@@ -157,19 +152,19 @@
                     const esOcupada = ocupadasFisicas.includes(m.toString());
                     return `
                         <button onclick="irAMenu('${m}')"
-                            class="h-24 rounded-2xl text-lg font-black shadow-md border-b-4 transition-all active:scale-95
-                            ${esOcupada ? 'bg-white border-red-500 text-red-600' : 'bg-white border-green-500 text-green-600'}">
+                            class="h-24 rounded-2xl text-lg font-black shadow-md border-b-4 transition-all active:scale-95 bg-white/80 backdrop-blur-sm
+                            ${esOcupada ? 'border-orange-500 text-orange-600 shadow-orange-500/5' : 'border-emerald-700 text-emerald-800 shadow-emerald-800/5'}">
                             MESA ${m}
                         </button>`;
                 }).join('');
 
                 const contLlevar = document.getElementById('contenedor-llevar');
                 if (foliosLlevar.length === 0) {
-                    contLlevar.innerHTML = '<p class="col-span-3 text-center text-gray-300 text-[10px] font-bold uppercase py-2">Ninguno</p>';
+                    contLlevar.innerHTML = '<p class="col-span-3 text-center text-slate-300 text-[10px] font-bold uppercase py-2">Ninguno</p>';
                 } else {
                     contLlevar.innerHTML = foliosLlevar.map(f => `
-                        <button onclick="irAMenu('${f}')" class="bg-white border-b-4 border-orange-500 text-orange-600 p-3 rounded-xl font-black text-xs shadow-sm active:scale-95">
-                            🥡 ${f}
+                        <button onclick="irAMenu('${f}')" class="bg-white/80 backdrop-blur-sm border-b-4 border-orange-500 text-orange-600 p-3 rounded-xl font-black text-xs shadow-md shadow-orange-500/5 active:scale-95 transition-all">
+                            存放 🥡 ${f}
                         </button>
                     `).join('');
                 }
@@ -224,7 +219,7 @@
         async function mostrarCategorias() {
             const g = document.getElementById('grid-botones');
             document.getElementById('btn-atras').onclick = () => { document.getElementById('vista-menu').classList.add('hidden'); document.getElementById('vista-mesas').classList.remove('hidden'); actualizarEstadoMesas(); };
-            g.innerHTML = '<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">Categorías</p>';
+            g.innerHTML = '<p class="col-span-2 text-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Categorías</p>';
 
             const resCat = await fetch(`${API}/api/categorias`);
             const categorias = await resCat.json();
@@ -233,9 +228,10 @@
 
             categorias.forEach(c => {
                 const btn = document.createElement('button');
-                btn.className = "bg-blue-500 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95 transition-all";
+                // ADAPTADO: Botones de categorías en Verde Esmeralda
+                btn.className = "bg-emerald-800 hover:bg-emerald-900 text-white p-5 rounded-2xl font-black uppercase shadow-md shadow-emerald-800/10 text-xs active:scale-95 transition-all";
                 btn.innerText = c.nombre;
-                btn.onclick = () => mostrarSubOProductos(c.id, c.nombre);
+                btn.onclick = () => { mostrarSubOProductos(c.id, c.nombre); };
                 g.appendChild(btn);
             });
         }
@@ -243,22 +239,24 @@
         function mostrarSubOProductos(catId, catNombre) {
             const g = document.getElementById('grid-botones');
             document.getElementById('btn-atras').onclick = () => mostrarCategorias();
-            g.innerHTML = `<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">${catNombre}</p>`;
+            g.innerHTML = `<p class="col-span-2 text-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">${catNombre}</p>`;
 
             fetch(`${API}/api/subcategorias/${catId}`).then(r => r.json()).then(subcategorias => {
                 const productosDirectos = menuGlobal.filter(p => Number(p.categoria_id) === Number(catId) && Number(p.subcategoria_id || 0) === 0);
 
                 subcategorias.forEach(s => {
                     const btn = document.createElement('button');
-                    btn.className = "bg-orange-500 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95";
+                    // ADAPTADO: Botones de subcategorías en Naranja Corporativo
+                    btn.className = "bg-orange-500 hover:bg-orange-600 text-white p-5 rounded-2xl font-black uppercase shadow-md shadow-orange-500/10 text-xs active:scale-95 transition-all";
                     btn.innerText = s.nombre;
                     btn.onclick = () => mostrarProductosDeSub(s.id, catId, s.nombre);
                     g.appendChild(btn);
                 });
                 productosDirectos.forEach(p => {
                     const btn = document.createElement('button');
-                    btn.className = "bg-green-600 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95";
-                    btn.innerHTML = `${p.nombre}<br><span class="text-[10px] opacity-80">$${p.precio}</span>`;
+                    // ADAPTADO: Botones finales de platillos en blanco cristal limpio con precio
+                    btn.className = "bg-white border border-slate-200 text-slate-800 p-5 rounded-2xl font-black uppercase shadow-sm text-xs active:scale-95 transition-all";
+                    btn.innerHTML = `${p.nombre}<br><span class="text-[10px] text-emerald-700 font-mono font-black">$${p.precio}</span>`;
                     btn.onclick = () => lanzarPersonalizador(p);
                     g.appendChild(btn);
                 });
@@ -268,13 +266,14 @@
         function mostrarProductosDeSub(subId, catId, subNombre) {
             const g = document.getElementById('grid-botones');
             document.getElementById('btn-atras').onclick = () => mostrarSubOProductos(catId, "");
-            g.innerHTML = `<p class="col-span-2 text-center text-gray-400 font-bold text-xs uppercase">${subNombre}</p>`;
+            g.innerHTML = `<p class="col-span-2 text-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">${subNombre}</p>`;
 
             const filtrados = menuGlobal.filter(p => Number(p.subcategoria_id) === Number(subId));
             filtrados.forEach(p => {
                 const btn = document.createElement('button');
-                btn.className = "bg-green-600 text-white p-5 rounded-2xl font-black uppercase shadow-md text-xs active:scale-95";
-                btn.innerHTML = `${p.nombre}<br><span class="text-[10px] opacity-80">$${p.precio}</span>`;
+                // ADAPTADO: Botones finales de platillos en blanco cristal limpio con precio
+                btn.className = "bg-white border border-slate-200 text-slate-800 p-5 rounded-2xl font-black uppercase shadow-sm text-xs active:scale-95 transition-all";
+                btn.innerHTML = `${p.nombre}<br><span class="text-[10px] text-emerald-700 font-mono font-black">$${p.precio}</span>`;
                 btn.onclick = () => lanzarPersonalizador(p);
                 g.appendChild(btn);
             });
@@ -291,12 +290,12 @@
 
                 const contChecks = document.getElementById('contenedor-mods-checks');
                 contChecks.innerHTML = producto.modificadores.map((m, index) => `
-            <label class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100">
+            <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-blue-600 rounded">
-                    <span class="text-xs font-bold text-gray-700">${m.nombre}</span>
+                    <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-emerald-800 rounded focus:ring-0">
+                    <span class="text-xs font-bold text-slate-700">${m.nombre}</span>
                 </div>
-                <span class="text-xs font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
+                <span class="text-xs font-mono font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
                     ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
                 </span>
             </label>
@@ -337,7 +336,7 @@
             });
 
             const notaLibre = document.getElementById('mod-nota-libre').value.trim();
-
+            
             const modsIds = modsSeleccionados.map(m => m.id).sort().join('-');
 
             const existe = itemsNuevos.find(i =>
@@ -361,7 +360,6 @@
             actualizarResumen();
         }
 
-
         function removerItemNuevo(index) {
             itemsNuevos.splice(index, 1);
             actualizarResumen();
@@ -380,16 +378,16 @@
                 let sublinea = i.modificadores.map(m => m.nombre).join(', ');
                 if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
                 return `
-            <li class="bg-blue-50 p-2 rounded-lg border border-blue-100 flex flex-col shadow-sm">
+            <li class="bg-orange-50 p-2 rounded-lg border border-orange-100 flex flex-col shadow-sm">
                 <div class="flex justify-between items-center">
-                    <span class="text-blue-900 font-black">${i.nombre}</span>
+                    <span class="text-slate-800 font-black">${i.nombre}</span>
                     <div class="flex items-center gap-2">
                         <button onclick="cambiarCantNuevo(${index}, -1)" class="w-6 h-6 bg-white rounded-full shadow text-red-500 font-black flex items-center justify-center border border-red-100 text-xs active:scale-90">-</button>
-                        <span class="text-blue-600 text-xs font-black px-1">x${i.cant}</span>
+                        <span class="text-orange-600 text-xs font-black px-1">x${i.cant}</span>
                         <button onclick="cambiarCantNuevo(${index}, 1)" class="w-6 h-6 bg-white rounded-full shadow text-green-600 font-black flex items-center justify-center border border-green-100 text-xs active:scale-90">+</button>
                     </div>
                 </div>
-                ${sublinea ? `<div class="text-[10px] text-blue-500 font-bold ml-1 mt-0.5">↳ ${sublinea}</div>` : ''}
+                ${sublinea ? `<div class="text-[10px] text-orange-600/80 font-black ml-1 mt-0.5">↳ ${sublinea}</div>` : ''}
             </li>`;
             }).join('');
 
@@ -415,22 +413,22 @@
                 let sublinea = mods.map(m => m.nombre).join(', ');
                 if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
                 return `
-            <li class="text-gray-400 italic bg-gray-50/50 p-2 rounded-lg border border-gray-100">
+            <li class="text-slate-400 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100">
                 <div class="flex justify-between">
                     <span>• x${item.cantidad} ${item.producto} <small>(en proceso)</small></span>
                 </div>
-                ${sublinea ? `<div class="text-[10px] text-gray-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+                ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
             </li>`;
             }).join('');
 
-            document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-gray-300 py-2">Sin productos pendientes</p>';
+            document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-slate-300 py-2">Sin productos pendientes</p>';
         }
 
         function abrirConfirmacion() {
             if (!itemsNuevos.length) return;
 
             document.getElementById('resumen-final').innerHTML = itemsNuevos.map(i => {
-                let txt = `• ${i.cant}x ${i.nombre}`; // <--- CORREGIDO: Ahora imprime la cantidad real elegida (ej: 2x)
+                let txt = `• ${i.cant}x ${i.nombre}`; 
                 if (i.modificadores.length) txt += ` (${i.modificadores.map(m => m.nombre).join(',')})`;
                 if (i.nota) txt += ` [${i.nota}]`;
                 return `<div>${txt}</div>`;
@@ -497,7 +495,7 @@
                 iniciarPasoPersona();
             } else {
                 btnCobro.innerText = "Cobrar Cuenta Completa 💰";
-                btnCobro.onclick = () => ejecutarCobroCompleto();
+                btnCobro.onclick = () => { ejecutarCobroCompleto(); };
                 document.getElementById('seccion-articulos-cobro').classList.add('hidden');
             }
         }
@@ -522,11 +520,11 @@
                 let detalle = mods.map(m => m.nombre).join(', ');
                 if (item.nota) detalle += (detalle ? ' | ' : '') + item.nota;
                 return `
-            <label class="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100">
-                <input type="checkbox" name="item-cobro-check" value="${item.id}" ${esUltimaPersona ? 'checked' : ''} class="w-4 h-4 text-green-600">
+            <label class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-100 transition-all">
+                <input type="checkbox" name="item-cobro-check" value="${item.id}" ${esUltimaPersona ? 'checked' : ''} class="w-4 h-4 text-emerald-800 rounded focus:ring-0">
                 <div class="text-xs">
-                    <div class="font-bold text-gray-800">${item.producto}</div>
-                    ${detalle ? `<div class="text-[10px] text-gray-400 font-bold">${detalle}</div>` : ''}
+                    <div class="font-bold text-slate-800">${item.producto}</div>
+                    ${detalle ? `<div class="text-[10px] text-slate-400 font-bold">${detalle}</div>` : ''}
                 </div>
             </label>
         `;
@@ -538,7 +536,6 @@
             if (checks.length === 0) return alert(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
 
             const idsSeleccionados = Array.from(checks).map(c => parseInt(c.value));
-
             const itemsPersona = itemsDisponiblesFlujo.filter(item => idsSeleccionados.includes(item.id));
 
             let totalPersona = 0;
@@ -586,17 +583,17 @@
             if (labelSeccion) labelSeccion.innerText = "RESUMEN FINAL DE LA CUENTA DIVIDIDA:";
 
             btnCobro.innerText = "Confirmar y Liquidar Cuentas 💳💰";
-            btnCobro.onclick = () => procesarCobroParcialFinalMasivo();
+            btnCobro.onclick = () => {  procesarCobroParcialFinalMasivo(); };
 
             contLista.innerHTML = subcuentasCalculadas.map(sc => {
                 const desgloseProductos = sc.items.map(i => `• ${i.producto}`).join('<br>');
                 return `
-            <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 mb-2">
-                <div class="flex justify-between items-center border-b border-blue-100 pb-1 mb-1">
-                    <span class="font-black text-xs text-blue-900 uppercase">👤 Persona #${sc.persona}</span>
+            <div class="bg-orange-50/60 p-4 rounded-2xl border border-orange-100 mb-2">
+                <div class="flex justify-between items-center border-b border-orange-100 pb-1 mb-1">
+                    <span class="font-black text-xs text-orange-950 uppercase">👤 Persona #${sc.persona}</span>
                     <span class="font-mono font-black text-sm text-green-600">$${sc.total.toFixed(2)}</span>
                 </div>
-                <div class="text-[10px] text-gray-500 font-mono leading-relaxed">${desgloseProductos}</div>
+                <div class="text-[10px] text-slate-500 font-mono leading-relaxed">${desgloseProductos}</div>
             </div>
         `;
             }).join('');
