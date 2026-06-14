@@ -86,7 +86,17 @@ let historialComandasCompletadas = [];
             id INTEGER PRIMARY KEY,
             numero_mesa INTEGER UNIQUE
         );
+
+        CREATE TABLE IF NOT EXISTS variables_sistema (
+            clave TEXT PRIMARY KEY,
+            valor TEXT
+        );
     `);
+
+    const pinExistente = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'pin_admin'");
+    if (!pinExistente) {
+        await db.run("INSERT INTO variables_sistema (clave, valor) VALUES ('pin_admin', '1234')");
+    }
     
     console.log("✅ Servidor Tukan: Estructura de Base de Datos lista.");
 })();
@@ -724,6 +734,72 @@ app.get('/api/reportes', async (req, res) => {
                 .sort((a, b) => b.cantidad - a.cantidad)
         });
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// --- OBTENER PIN ACTUAL ---
+app.get('/api/sistema/pin', async (req, res) => {
+    try {
+        const row = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'pin_admin'");
+        res.json({ pin: row ? row.valor : '1234' });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- ACTUALIZAR PIN ---
+app.put('/api/sistema/pin', async (req, res) => {
+    try {
+        const { nuevoPin } = req.body;
+        if (!nuevoPin || nuevoPin.trim().length === 0) return res.status(400).json({ error: "PIN inválido" });
+        await db.run("UPDATE variables_sistema SET valor = ? WHERE clave = 'pin_admin'", [nuevoPin.trim()]);
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- VERIFICAR PIN ---
+app.post('/api/sistema/verificar_pin', async (req, res) => {
+    try {
+        const { pin } = req.body;
+        const row = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'pin_admin'");
+        if (row && row.valor === pin.toString().trim()) {
+            return res.json({ valido: true });
+        }
+        res.json({ valido: false });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- ELIMINAR ARTÍCULO YA ENVIADO (CON AUTORIZACIÓN DE PIN) ---
+app.post('/api/pedidos/cancelar_item', async (req, res) => {
+    try {
+        const { id, mesa, producto, modificadores, nota } = req.body;
+
+        // 1. Eliminamos estrictamente UN solo ítem que coincida con ese ID único de la cuenta de la mesa
+        const result = await db.run('DELETE FROM pedidos_activos WHERE id = ? AND mesa = ?', [id, mesa]);
+        
+        if (result.changes > 0) {
+            // 2. Buscamos en las comandas informativas activas (estatus = 0) de la mesa si hay registros de ese producto
+            // para limpiarlo de la pantalla de barra/cocina si aún no se ha completado.
+            const comandaHeader = await db.all('SELECT id FROM control_comandas WHERE mesa = ? AND estatus = 0', [mesa]);
+            
+            for (let c of comandaHeader) {
+                // Borramos un elemento coincidente de los items de la comanda en disco
+                await db.run(`
+                    DELETE FROM items_comanda 
+                    WHERE id IN (
+                        SELECT id FROM items_comanda 
+                        WHERE comanda_id = ? AND producto = ? AND modificadores = ? AND nota = ? 
+                        LIMIT 1
+                    )
+                `, [c.id, producto, modificadores, nota]);
+
+                // Si por consecuencia la comanda se quedó sin ningún platillo adentro, la borramos por completo
+                const restantes = await db.get('SELECT COUNT(*) as cuenta FROM items_comanda WHERE comanda_id = ?', [c.id]);
+                if (restantes && restantes.cuenta === 0) {
+                    await db.run('DELETE FROM control_comandas WHERE id = ?', [c.id]);
+                }
+            }
+            return res.json({ success: true });
+        }
+        res.status(404).json({ success: false, error: "No se encontró el artículo a cancelar" });
+    } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.listen(3000, '0.0.0.0', () => console.log("🚀 Servidor Tukan activo en puerto 3000"));

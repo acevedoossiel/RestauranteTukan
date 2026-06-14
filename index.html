@@ -12,8 +12,10 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative" style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
-    
+
+<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative"
+    style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
+
     <div class="fixed inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
     <div id="vista-mesas" class="relative z-10">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
@@ -31,10 +33,12 @@
             </div>
         </div>
 
-        <h3 class="text-[10px] font-black text-emerald-800/60 uppercase mb-2 tracking-widest italic">Pedidos para llevar activos:</h3>
+        <h3 class="text-[10px] font-black text-emerald-800/60 uppercase mb-2 tracking-widest italic">Pedidos para llevar
+            activos:</h3>
         <div id="contenedor-llevar" class="grid grid-cols-3 gap-2 mb-6"></div>
 
-        <h3 class="text-[10px] font-black text-emerald-800/60 uppercase mb-2 tracking-widest italic">Mesas en Salón:</h3>
+        <h3 class="text-[10px] font-black text-emerald-800/60 uppercase mb-2 tracking-widest italic">Mesas en Salón:
+        </h3>
         <div id="contenedor-mesas" class="grid grid-cols-2 gap-4"></div>
     </div>
 
@@ -48,8 +52,19 @@
 
         <div id="grid-botones" class="grid grid-cols-2 gap-3 mb-6"></div>
 
-        <div class="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-2xl border-t-4 border-orange-500 sticky bottom-4">
-            <h3 class="text-[10px] font-black text-slate-400 Pall uppercase mb-2 tracking-widest italic">Resumen del pedido:</h3>
+        <div
+            class="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-2xl border-t-4 border-orange-500 sticky bottom-4">
+            <!-- <h3 class="text-[10px] font-black text-slate-400 Pall uppercase mb-2 tracking-widest italic">Resumen del
+                pedido:</h3> -->
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-[10px] font-black text-slate-400 Pall uppercase tracking-widest italic">Resumen del
+                    pedido:</h3>
+                <!-- Botón para abrir el panel de edición/cancelación controlada -->
+                <button onclick="abrirModalEdicionResumen()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition active:scale-95 shadow-sm">
+                    🛠️ Editar Resumen
+                </button>
+            </div>
             <ul id="lista-orden" class="mb-4 text-sm font-bold text-slate-800 space-y-2 max-h-40 overflow-y-auto"></ul>
 
             <div class="grid grid-cols-2 gap-2">
@@ -65,13 +80,15 @@
 
     <div id="modal-modificadores"
         class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto border border-slate-100 shadow-2xl">
+        <div
+            class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-[2rem] p-6 max-h-[90vh] overflow-y-auto border border-slate-100 shadow-2xl">
             <h2 id="mod-producto-titulo" class="text-lg font-black uppercase text-emerald-950 mb-1"></h2>
             <p class="text-xs text-slate-400 font-bold uppercase mb-4 tracking-wider">Personalizar producto</p>
 
             <div id="contenedor-mods-checks" class="space-y-2 mb-4"></div>
 
-            <label class="text-[10px] font-black uppercase text-slate-400 block mb-1">Notas especiales (Alergias / Excepciones):</label>
+            <label class="text-[10px] font-black uppercase text-slate-400 block mb-1">Notas especiales (Alergias /
+                Excepciones):</label>
             <input type="text" id="mod-nota-libre" placeholder="Ej: Sin pimienta, sin mostaza..."
                 class="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold outline-none mb-6 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 transition-all">
 
@@ -102,12 +119,15 @@
 
     <div id="modal-cobrar"
         class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] overflow-y-auto border border-slate-100 shadow-2xl">
+        <div
+            class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] overflow-y-auto border border-slate-100 shadow-2xl">
             <h2 class="text-xl font-black uppercase text-emerald-950 mb-1">Cierre de Cuenta</h2>
-            <p class="text-xs text-slate-400 font-bold uppercase mb-4 tracking-wider">Mesa/Folio: <span id="span-mesa-cobro" class="text-orange-500"></span></p>
+            <p class="text-xs text-slate-400 font-bold uppercase mb-4 tracking-wider">Mesa/Folio: <span
+                    id="span-mesa-cobro" class="text-orange-500"></span></p>
 
             <div class="mb-4">
-                <label class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-100 transition-all">
+                <label
+                    class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-100 transition-all">
                     <input type="checkbox" id="chk-cuenta-separada" onchange="toggleModoSeparado(this.checked)"
                         class="w-4 h-4 text-emerald-800 rounded bg-white border-slate-300 focus:ring-0">
                     <span class="text-xs font-black uppercase text-slate-700">Dividir cuenta por consumo</span>
@@ -115,7 +135,8 @@
             </div>
 
             <div id="seccion-articulos-cobro" class="space-y-2 mb-6">
-                <p class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Selecciona los productos que paga esta persona:</p>
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Selecciona los productos que
+                    paga esta persona:</p>
                 <div id="lista-checks-cobro" class="space-y-2 max-h-52 overflow-y-auto p-1"></div>
             </div>
 
@@ -125,6 +146,31 @@
                 <button id="btn-ejecutar-cobro" onclick="procesarCobroFinal()"
                     class="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-800/10 transition-all"></button>
             </div>
+        </div>
+    </div>
+
+    <!-- --- NUEVO MODAL: EDICIÓN ENLISTADA PARA CANCELACIONES --- -->
+    <div id="modal-edicion-resumen"
+        class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-white/95 backdrop-blur-md w-full max-w-md rounded-[2rem] p-6 max-h-[85vh] flex flex-col border border-slate-100 shadow-2xl">
+            <div class="mb-4">
+                <h2 class="text-lg font-black uppercase text-emerald-950 mb-1">Modificar Consumo</h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Historial detallado para
+                    eliminación controlada</p>
+            </div>
+
+            <!-- Contenedor con scroll propio para enlistar los productos uno por uno -->
+            <div class="flex-1 overflow-y-auto no-scrollbar pr-1 mb-6">
+                <ul id="lista-desglosada-edicion" class="text-sm font-bold text-slate-800 space-y-2">
+                    <!-- Se llena dinámicamente con JavaScript -->
+                </ul>
+            </div>
+
+            <button onclick="cerrarModalEdicionResumen()"
+                class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-black text-xs uppercase transition active:scale-95 shadow-md">
+                Volver al Pedido
+            </button>
         </div>
     </div>
 
@@ -336,7 +382,7 @@
             });
 
             const notaLibre = document.getElementById('mod-nota-libre').value.trim();
-            
+
             const modsIds = modsSeleccionados.map(m => m.id).sort().join('-');
 
             const existe = itemsNuevos.find(i =>
@@ -373,7 +419,79 @@
             actualizarResumen();
         }
 
+        // function actualizarResumen() {
+        //     let html = itemsNuevos.map((i, index) => {
+        //         let sublinea = i.modificadores.map(m => m.nombre).join(', ');
+        //         if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
+        //         return `
+        //     <li class="bg-orange-50 p-2 rounded-lg border border-orange-100 flex flex-col shadow-sm">
+        //         <div class="flex justify-between items-center">
+        //             <span class="text-slate-800 font-black">${i.nombre}</span>
+        //             <div class="flex items-center gap-2">
+        //                 <button onclick="cambiarCantNuevo(${index}, -1)" class="w-6 h-6 bg-white rounded-full shadow text-red-500 font-black flex items-center justify-center border border-red-100 text-xs active:scale-90">-</button>
+        //                 <span class="text-orange-600 text-xs font-black px-1">x${i.cant}</span>
+        //                 <button onclick="cambiarCantNuevo(${index}, 1)" class="w-6 h-6 bg-white rounded-full shadow text-green-600 font-black flex items-center justify-center border border-green-100 text-xs active:scale-90">+</button>
+        //             </div>
+        //         </div>
+        //         ${sublinea ? `<div class="text-[10px] text-orange-600/80 font-black ml-1 mt-0.5">↳ ${sublinea}</div>` : ''}
+        //     </li>`;
+        //     }).join('');
+
+        //     const dbAgrupados = {};
+
+        //     itemsEnDB.forEach(item => {
+        //         const llaveUnica = `${item.producto}|${item.modificadores || '[]'}|${item.nota || ''}`;
+
+        //         if (dbAgrupados[llaveUnica]) {
+        //             dbAgrupados[llaveUnica].cantidad++;
+        //         } else {
+        //             dbAgrupados[llaveUnica] = {
+        //                 producto: item.producto,
+        //                 modificadores: item.modificadores,
+        //                 nota: item.nota,
+        //                 cantidad: 1
+        //             };
+        //         }
+        //     });
+
+        //     // html += Object.values(dbAgrupados).map(item => {
+        //     //     const mods = JSON.parse(item.modificadores || '[]');
+        //     //     let sublinea = mods.map(m => m.nombre).join(', ');
+        //     //     if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+        //     //     return `
+        //     // <li class="text-slate-400 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100">
+        //     //     <div class="flex justify-between">
+        //     //         <span>• x${item.cantidad} ${item.producto} <small>(en proceso)</small></span>
+        //     //     </div>
+        //     //     ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+        //     // </li>`;
+        //     // }).join('');
+
+        //     html += itemsEnDB.map(item => {
+        //         const mods = JSON.parse(item.modificadores || '[]');
+        //         let sublinea = mods.map(m => m.nombre).join(', ');
+        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+
+        //         // Escapamos los caracteres para poder enviarlos limpiamente por parámetro en la función js
+        //         const itemSeguro = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        //         return `
+        //             <li class="text-slate-400 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+        //                 <div>
+        //                     <div class="font-medium">• 1x ${item.producto} <small class="text-emerald-700/60 font-bold font-sans">(en proceso)</small></div>
+        //                     ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+        //                 </div>
+        //                 <button onclick="solicitarCancelacionItem('${itemSeguro}')" class="text-red-400 hover:text-red-600 p-2 text-xs font-black uppercase tracking-wider transition active:scale-90">
+        //                     🗑️
+        //                 </button>
+        //             </li>`;
+        //     }).join('');
+
+        //     document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-slate-300 py-2">Sin productos pendientes</p>';
+        // }
+
         function actualizarResumen() {
+            // 1. Render de los ítems nuevos pendientes por enviar (se mantienen igual con sus botones + y -)
             let html = itemsNuevos.map((i, index) => {
                 let sublinea = i.modificadores.map(m => m.nombre).join(', ');
                 if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
@@ -391,6 +509,7 @@
             </li>`;
             }).join('');
 
+            // 2. Agrupación inteligente de lo que ya está en la Base de Datos para limpiar la vista principal
             const dbAgrupados = {};
 
             itemsEnDB.forEach(item => {
@@ -408,6 +527,7 @@
                 }
             });
 
+            // --- ENFOQUE REACTIVADO: Mostramos todo agrupado limpiamente (Ej: x3 Hamburguesa) ---
             html += Object.values(dbAgrupados).map(item => {
                 const mods = JSON.parse(item.modificadores || '[]');
                 let sublinea = mods.map(m => m.nombre).join(', ');
@@ -415,7 +535,7 @@
                 return `
             <li class="text-slate-400 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100">
                 <div class="flex justify-between">
-                    <span>• x${item.cantidad} ${item.producto} <small>(en proceso)</small></span>
+                    <span>• x${item.cantidad} ${item.producto} <small class="text-emerald-700/40 font-black font-sans">(en proceso)</small></span>
                 </div>
                 ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
             </li>`;
@@ -428,7 +548,7 @@
             if (!itemsNuevos.length) return;
 
             document.getElementById('resumen-final').innerHTML = itemsNuevos.map(i => {
-                let txt = `• ${i.cant}x ${i.nombre}`; 
+                let txt = `• ${i.cant}x ${i.nombre}`;
                 if (i.modificadores.length) txt += ` (${i.modificadores.map(m => m.nombre).join(',')})`;
                 if (i.nota) txt += ` [${i.nota}]`;
                 return `<div>${txt}</div>`;
@@ -583,7 +703,7 @@
             if (labelSeccion) labelSeccion.innerText = "RESUMEN FINAL DE LA CUENTA DIVIDIDA:";
 
             btnCobro.innerText = "Confirmar y Liquidar Cuentas 💳💰";
-            btnCobro.onclick = () => {  procesarCobroParcialFinalMasivo(); };
+            btnCobro.onclick = () => { procesarCobroParcialFinalMasivo(); };
 
             contLista.innerHTML = subcuentasCalculadas.map(sc => {
                 const desgloseProductos = sc.items.map(i => `• ${i.producto}`).join('<br>');
@@ -671,6 +791,103 @@
                 }
             }
         }
+
+        async function solicitarCancelacionItem(itemJson) {
+            // Restauramos el objeto transformado desde la cadena HTML
+            const item = JSON.parse(itemJson.replace(/&quot;/g, '"'));
+
+            // 1. El gerente/admin valida visualmente en cocina si ya se empezó a cocinar
+            const confirmarProduccion = confirm(`⚠️ CONTROL DE SEGURIDAD:\n¿Ya verificaste en Cocina/Barra que el producto "${item.producto.toUpperCase()}" NO se esté preparando actualmente?`);
+            if (!confirmarProduccion) return;
+
+            // 2. Solicitamos el PIN de autorización jerárquico
+            const pinIngresado = prompt("Introduce el PIN de Gerencia para autorizar la eliminación:");
+            if (!pinIngresado) return;
+
+            try {
+                // 3. Validamos el PIN contra la base de datos
+                const resPin = await fetch(`${API}/api/sistema/verificar_pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin: pinIngresado })
+                });
+                const dataPin = await resPin.json();
+
+                if (!dataPin.valido) {
+                    return alert("❌ PIN incorrecto. Operación rechazada.");
+                }
+
+                // 4. Si el PIN es válido, ejecutamos la eliminación síncrona
+                const resCancelacion = await fetch(`${API}/api/pedidos/cancelar_item`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: item.id,
+                        mesa: mesaSel,
+                        producto: item.producto,
+                        modificadores: item.modificadores,
+                        nota: item.nota
+                    })
+                });
+
+                if (resCancelacion.ok) {
+                    alert(`✅ "${item.producto.toUpperCase()}" eliminado exitosamente de la cuenta y pantallas de producción.`);
+
+                    // 1. PRIMERO: Vamos al servidor a traer la cuenta fresca actualizada de la mesa
+                    const resCuenta = await fetch(`${API}/cuenta/${mesaSel}`);
+                    itemsEnDB = await resCuenta.json();
+
+                    // 2. SEGUNDO: Renderizamos el resumen del fondo agrupado (x2, x4, etc.)
+                    actualizarResumen();
+
+                    // 3. TERCERO: Ahora sí, repintamos la lista desglosada del modal con los datos reales
+                    abrirModalEdicionResumen();
+                } else {
+                    alert("Error al intentar remover el artículo del servidor.");
+                }
+            } catch (err) {
+                console.error("Error en flujo de cancelación:", err);
+                alert("Ocurrió un fallo de conexión.");
+            }
+        }
+
+        function abrirModalEdicionResumen() {
+            const contenedorLista = document.getElementById('lista-desglosada-edicion');
+
+            if (itemsEnDB.length === 0) {
+                alert("Esta mesa no tiene consumos enviados por modificar.");
+                return;
+            }
+
+            // Generamos la lista desglosada detallada únicamente dentro del modal de seguridad
+            contenedorLista.innerHTML = itemsEnDB.map(item => {
+                const mods = JSON.parse(item.modificadores || '[]');
+                let sublinea = mods.map(m => m.nombre).join(', ');
+                if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+
+                const itemSeguro = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                return `
+            <li class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex justify-between items-center shadow-sm">
+                <div>
+                    <div class="font-black text-xs uppercase text-slate-800">• 1x ${item.producto}</div>
+                    ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+                </div>
+                <!-- Botón de cancelación controlado por PIN -->
+                <button onclick="solicitarCancelacionItem('${itemSeguro}')" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
+                    🗑️
+                </button>
+            </li>`;
+            }).join('');
+
+            document.getElementById('modal-edicion-resumen').classList.remove('hidden');
+        }
+
+        function cerrarModalEdicionResumen() {
+            document.getElementById('modal-edicion-resumen').classList.add('hidden');
+        }
+
+
 
         setInterval(async () => {
             const vistaMesas = document.getElementById('vista-mesas');

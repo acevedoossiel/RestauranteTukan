@@ -17,14 +17,14 @@
 
         const sesionCookie = obtenerCookie('admin_session');
         const loginTime = sessionStorage.getItem('login_time');
-        
+
         if (!sesionCookie || !loginTime) {
             console.warn("Acceso no autorizado o cookie inexistente.");
             sessionStorage.clear();
             borrarCookieSesion();
             window.location.replace('admin_login.html');
         } else {
-            const doceHorasEnMiliseundos = 12 * 60 * 60 * 1000; 
+            const doceHorasEnMiliseundos = 12 * 60 * 60 * 1000;
             const tiempoTranscurrido = Date.now() - parseInt(loginTime);
             if (tiempoTranscurrido >= doceHorasEnMiliseundos) {
                 alert("Tu sesión de 12 horas ha expirado. Por seguridad, debes iniciar sesión nuevamente.");
@@ -57,10 +57,12 @@
     </style>
 </head>
 
-<body class="w-full min-h-screen flex overflow-x-hidden font-sans relative" style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
+<body class="w-full min-h-screen flex overflow-x-hidden font-sans relative"
+    style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="absolute inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
     <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-white/95 backdrop-blur-md text-emerald-950 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0 border-r border-slate-200/60 relative z-10">        <div class="p-6 text-center border-b border-slate-800/60">
+        class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-white/95 backdrop-blur-md text-emerald-950 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0 border-r border-slate-200/60 relative z-10">
+        <div class="p-6 text-center border-b border-slate-800/60">
             <img src="resources/Tukan-logo.png" alt="Logo El Tukan" class="mx-auto w-24 h-auto mb-3 drop-shadow-md">
             <h1 class="text-lg font-black uppercase tracking-wider ext-emerald-900">
                 EL TUKAN <span class="text-orange-500">ADMIN</span>
@@ -72,12 +74,12 @@
                 class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl bg-orange-500 text-white font-bold text-sm transition-all shadow-lg shadow-orange-500/20">
                 📦 Inventario
             </button>
-    
+
             <button onclick="verTab('tab-categorias', this)"
                 class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all">
                 📂 Categorías
             </button>
-    
+
             <button onclick="verTab('tab-reportes', this)"
                 class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all border-t border-slate-200/60 pt-6">
                 📊 Reportes
@@ -103,11 +105,13 @@
             <div class="w-full">
                 <header class="mb-8 pt-4 md:pt-0">
                     <h2 class="text-3xl font-black text-emerald-950 tracking-tight">Inventario</h2>
-                    <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest text-balance">Gestión de productos y precios</p>
+                    <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest text-balance">Gestión de
+                        productos y precios</p>
                 </header>
 
                 <div class="bg-white p-6 md:p-8 rounded-3xl shadow-sm mb-10 border-t-4 border-emerald-800">
-                    <h2 class="text-xs font-black uppercase text-slate-400 mb-6 tracking-widest italic text-center">Registrar Nuevo Producto</h2>
+                    <h2 class="text-xs font-black uppercase text-slate-400 mb-6 tracking-widest italic text-center">
+                        Registrar Nuevo Producto</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                         <select id="prod-cat" onchange="cargarSubcategorias(this.value)"
                             class="w-full bg-white border-2 border-slate-200/80 rounded-2xl px-4 py-4 font-bold focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all"></select>
@@ -124,7 +128,8 @@
                                 class="w-full bg-white border-2 border-slate-200/80 rounded-2xl px-4 py-4 font-bold text-red-500 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="text-xs font-black uppercase text-slate-400 block mb-2 tracking-wider">Destino de Comanda</label>
+                            <label class="text-xs font-black uppercase text-slate-400 block mb-2 tracking-wider">Destino
+                                de Comanda</label>
                             <select id="prod-destino"
                                 class="w-full bg-white border-2 border-slate-200/80 rounded-2xl px-4 py-4 font-bold focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all">
                                 <option value="" selected disabled> Selecciona el destino...</option>
@@ -134,14 +139,34 @@
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="text-xs font-black uppercase text-slate-400 block mb-2 tracking-wider">Modificadores Frecuentes (Un modificador por línea. Formato: Nombre, Precio Extra)</label>
+                            <label
+                                class="text-xs font-black uppercase text-slate-400 block mb-2 tracking-wider">Modificadores
+                                Frecuentes (Un modificador por línea. Formato: Nombre, Precio Extra)</label>
                             <textarea id="prod-modificadores" rows="3"
                                 placeholder="Ejemplo:&#10;Doble Piña, 10&#10;Sin Jamón, 0&#10;Extra Queso, 15"
                                 class="w-full bg-white border-2 border-slate-200/80 rounded-2xl px-4 py-3 font-bold font-mono text-sm focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all placeholder-slate-300"></textarea>
                         </div>
                     </div>
                     <button onclick="guardarProducto()"
-                        class="w-full bg-orange-500 hover:bg-emerald-800 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-500/10 mt-6 active:scale-95 transition-all">Guardar Producto</button>
+                        class="w-full bg-orange-500 hover:bg-emerald-800 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-500/10 mt-6 active:scale-95 transition-all">Guardar
+                        Producto</button>
+                </div>
+
+                <div
+                    class="bg-slate-50 p-6 rounded-3xl border border-slate-200/60 mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h4 class="text-sm font-black text-emerald-950 uppercase tracking-tight">Seguridad de
+                            Cuentas</h4>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PIN de Gerencia
+                            para autorizar cancelaciones de comandas</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <input type="password" id="input-pin-sistema" maxlength="6" placeholder="Nuevo PIN"
+                            class="bg-white border-2 border-slate-200/80 rounded-xl px-4 py-2 text-center font-mono font-black text-sm text-slate-700 w-32 focus:border-orange-500 focus:outline-none transition-all">
+                        <button onclick="actualizarPinGerencia()"
+                            class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition active:scale-95">Cambiar
+                            PIN</button>
+                    </div>
                 </div>
 
                 <div class="mt-4 mb-8">
@@ -154,7 +179,8 @@
                     <div class="overflow-x-auto w-full">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-emerald-900/90 text-white text-[11px] font-black uppercase tracking-wider">
+                                <tr
+                                    class="bg-emerald-900/90 text-white text-[11px] font-black uppercase tracking-wider">
                                     <th class="p-4 md:p-5">Producto</th>
                                     <th class="p-4 md:p-5 text-center">Venta</th>
                                     <th class="p-4 md:p-5 text-center">Costo</th>
@@ -177,12 +203,14 @@
             <div class="w-full">
                 <header class="mb-8 pt-4 md:pt-0 text-center md:text-left">
                     <h2 class="text-3xl font-black text-emerald-950 tracking-tight">Estructura</h2>
-                    <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest">Gestión de Categorías y Subcategorías</p>
+                    <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest">Gestión de Categorías y
+                        Subcategorías</p>
                 </header>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                     <div class="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-orange-500">
-                        <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">1. Categoría Padre</h2>
+                        <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">1.
+                            Categoría Padre</h2>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <input type="text" id="cat-nombre" placeholder="Ejemplo: Bebidas"
                                 class="flex-1 bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold text-sm focus:border-orange-500 focus:outline-none transition-all">
@@ -191,7 +219,8 @@
                         </div>
                     </div>
                     <div class="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-emerald-700">
-                        <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">2. Subcategoría</h2>
+                        <h2 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">2.
+                            Subcategoría</h2>
                         <div class="space-y-2">
                             <select id="subcat-parent-id"
                                 class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-2 text-xs font-bold focus:border-emerald-700 focus:outline-none transition-all"></select>
@@ -231,7 +260,8 @@
                         <button onclick="cargarReportes()"
                             class="bg-orange-500 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">Filtrar</button>
                         <button onclick="generarPDF()"
-                            class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">PDF 📄</button>
+                            class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">PDF
+                            📄</button>
                     </div>
                 </header>
 
@@ -251,7 +281,8 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-100">
+                    <div
+                        class="lg:col-span-2 bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-100">
                         <table class="overflow-x-auto w-full text-left">
                             <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black">
                                 <tr>
@@ -260,11 +291,14 @@
                                     <th class="p-4 text-right">Total</th>
                                 </tr>
                             </thead>
-                            <tbody id="rep-tabla-ventas" class="text-xs font-bold divide-y divide-slate-50 text-slate-700"></tbody>
+                            <tbody id="rep-tabla-ventas"
+                                class="text-xs font-bold divide-y divide-slate-50 text-slate-700"></tbody>
                         </table>
                     </div>
-                    <div class="bg-white rounded-[2rem] p-6 shadow-xl border-t-4 border-orange-500 border-x border-b border-slate-100">
-                        <h3 class="text-xs font-black uppercase tracking-widest mb-4 text-emerald-950">Lo más vendido</h3>
+                    <div
+                        class="bg-white rounded-[2rem] p-6 shadow-xl border-t-4 border-orange-500 border-x border-b border-slate-100">
+                        <h3 class="text-xs font-black uppercase tracking-widest mb-4 text-emerald-950">Lo más vendido
+                        </h3>
                         <ul id="rep-lista-top" class="space-y-2"></ul>
                     </div>
                 </div>
@@ -275,24 +309,25 @@
 
     <div id="modal-edit"
         class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-        <div class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-100">
+        <div
+            class="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-100">
             <h2 class="text-xl font-black uppercase mb-6 text-emerald-950">Editar Producto</h2>
             <input type="hidden" id="edit-id">
-            
+
             <div class="space-y-4">
                 <select id="edit-cat" onchange="cargarSubcategoriasEdit(this.value)"
                     class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all"></select>
-                
+
                 <select id="edit-subcat"
                     class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all"></select>
-                
+
                 <input type="text" id="edit-nombre"
                     class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all">
-                
+
                 <div class="grid grid-cols-2 gap-4">
                     <input type="number" id="edit-precio" placeholder="Venta"
                         class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold text-green-600 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all">
-                    
+
                     <input type="number" id="edit-costo" placeholder="Costo"
                         class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold text-red-600 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all">
                 </div>
@@ -307,7 +342,8 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-1">Modificadores (Línea por línea)</label>
+                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-1">Modificadores (Línea por
+                        línea)</label>
                     <textarea id="edit-modificadores" rows="3"
                         class="w-full bg-white border-2 border-slate-200/80 rounded-xl px-4 py-3 font-bold font-mono text-xs focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700/30 focus:outline-none transition-all"></textarea>
                 </div>
@@ -316,7 +352,8 @@
                     <button onclick="cerrarModal()"
                         class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-bold uppercase text-xs transition-all">Cancelar</button>
                     <button onclick="actualizarProducto()"
-                        class="flex-1 bg-orange-500 hover:bg-emerald-800 text-white py-4 rounded-xl font-black uppercase text-xs shadow-lg shadow-orange-500/10 transition-all">Guardar Cambios</button>
+                        class="flex-1 bg-orange-500 hover:bg-emerald-800 text-white py-4 rounded-xl font-black uppercase text-xs shadow-lg shadow-orange-500/10 transition-all">Guardar
+                        Cambios</button>
                 </div>
             </div>
         </div>
@@ -349,6 +386,9 @@
 
         async function cargarDatos() {
             try {
+                fetch(`${API}/api/sistema/pin`).then(r => r.json()).then(d => {
+                    document.getElementById('input-pin-sistema').value = d.pin;
+                });
                 const resCat = await fetch(`${API}/api/categorias`);
                 catsGlobal = await verificarRespuestaHttp(resCat);
 
@@ -525,13 +565,13 @@
         async function guardarCategoria() {
             const nombre = document.getElementById('cat-nombre').value;
             if (!nombre) return;
-            const res = await fetch(`${API}/api/categorias`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ nombre }) 
+            const res = await fetch(`${API}/api/categorias`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre })
             });
             await verificarRespuestaHttp(res);
-            document.getElementById('cat-nombre').value = ''; 
+            document.getElementById('cat-nombre').value = '';
             cargarDatos();
         }
 
@@ -539,18 +579,18 @@
             const nombre = document.getElementById('subcat-nombre').value;
             const categoria_id = document.getElementById('subcat-parent-id').value;
             if (!nombre || !categoria_id) return alert("Faltan datos");
-            const res = await fetch(`${API}/api/subcategorias`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ nombre, categoria_id }) 
+            const res = await fetch(`${API}/api/subcategorias`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, categoria_id })
             });
             await verificarRespuestaHttp(res);
-            document.getElementById('subcat-nombre').value = ''; 
+            document.getElementById('subcat-nombre').value = '';
             cargarDatos();
         }
 
         async function cargarSubcategorias(catId) {
-            if(!catId) return;
+            if (!catId) return;
             const res = await fetch(`${API}/api/subcategorias/${catId}`);
             const subs = await verificarRespuestaHttp(res);
             const select = document.getElementById('prod-subcat');
@@ -689,11 +729,30 @@
             link.click();
         }
 
+        async function actualizarPinGerencia() {
+            const nuevoPin = document.getElementById('input-pin-sistema').value;
+            if (!nuevoPin || nuevoPin.trim().length === 0) return alert("Por favor ingresa un PIN válido.");
+
+            if (confirm("¿Confirmas que deseas cambiar el PIN de autorización para cancelaciones del restaurante?")) {
+                const res = await fetch(`${API}/api/sistema/pin`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevoPin: nuevoPin })
+                });
+                if (res.ok) {
+                    alert("🔒 PIN de Gerencia actualizado con éxito en la base de datos.");
+                    cargarDatos();
+                } else {
+                    alert("No se pudo actualizar el PIN.");
+                }
+            }
+        }
+
         window.addEventListener('load', () => {
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('rep-inicio').value = hoy;
             document.getElementById('rep-fin').value = hoy;
-            cargarDatos(); 
+            cargarDatos();
         });
     </script>
 </body>
