@@ -916,6 +916,38 @@
             }
         }
 
+        function filtrarTabla() {
+            // Buscamos el texto ingresado por el usuario y lo pasamos a minúsculas
+            const textoFiltro = document.getElementById('filtro-inventario').value.toLowerCase().trim();
+            // Obtenemos todos los renglones del cuerpo de la tabla del inventario
+            const filas = document.querySelectorAll('#lista-menu tr');
+
+            filas.forEach(fila => {
+                // Buscamos las celdas de texto correspondientes dentro de la fila actual
+                const celdaProducto = fila.querySelector('td:nth-child(1)');
+                const celdaCategoria = fila.querySelector('td:nth-child(5)');
+                const celdaSubcategoria = fila.querySelector('td:nth-child(6)');
+
+                if (celdaProducto) {
+                    // Extraemos los textos y los normalizamos a minúsculas
+                    const nombreProducto = celdaProducto.querySelector('.font-black').innerText.toLowerCase();
+                    const nombreCategoria = celdaCategoria ? celdaCategoria.innerText.toLowerCase() : '';
+                    const nombreSubcategoria = celdaSubcategoria ? celdaSubcategoria.innerText.toLowerCase() : '';
+
+                    // Si el texto del buscador coincide con alguna de las columnas, mostramos la fila, de lo contrario la ocultamos
+                    if (
+                        nombreProducto.includes(textoFiltro) || 
+                        nombreCategoria.includes(textoFiltro) || 
+                        nombreSubcategoria.includes(textoFiltro)
+                    ) {
+                        fila.style.display = ""; // Renglón visible
+                    } else {
+                        fila.style.display = "none"; // Oculta el renglón
+                    }
+                }
+            });
+        }
+
         async function guardarModosPantalla() {
             const cocina = document.getElementById('select-modo-cocina').value;
             const barra = document.getElementById('select-modo-barra').value;
