@@ -51,13 +51,6 @@
                 <p class="text-xs text-emerald-800/50 Fly font-black uppercase tracking-widest">Control dinámico de bebidas y postres</p>
             </div>
 
-            <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-                <button id="btn-modo-print" onclick="cambiarModoTrabajo('impresora')"
-                    class="px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">🖨️ Impresora</button>
-                <button id="btn-modo-tablet" onclick="cambiarModoTrabajo('tablet')"
-                    class="px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">📱 Tablet</button>
-            </div>
-
             <button onclick="toggleHistorial()"
                 class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95">📦
                 Ver Recuperación</button>
@@ -81,30 +74,99 @@
         let idsComandasProcesadas = new Set();
         let checkboxesMarcadosBarra = new Set();
 
-        function cambiarModoTrabajo(modo) {
+        // function cambiarModoTrabajo(modo) {
+        //     modoOperacion = modo;
+        //     localStorage.setItem('modo_barra', modo);
+
+        //     const bPrint = document.getElementById('btn-modo-print');
+        //     const bTablet = document.getElementById('btn-modo-tablet');
+        //     const contVisual = document.getElementById('contenedor-comandas-barra');
+
+        //     if (modo === 'impresora') {
+        //         bPrint.className = "bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-orange-500/20 transition-all";
+        //         bTablet.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
+        //         contVisual.classList.add('opacity-40');
+        //     } else {
+        //         bTablet.className = "bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-emerald-800/20 transition-all";
+        //         bPrint.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
+        //         contVisual.classList.remove('opacity-40');
+        //     }
+        // }
+       function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
             localStorage.setItem('modo_barra', modo);
 
-            const bPrint = document.getElementById('btn-modo-print');
-            const bTablet = document.getElementById('btn-modo-tablet');
             const contVisual = document.getElementById('contenedor-comandas-barra');
+            if (!contVisual) return; // Salvaguarda anti-errores
 
             if (modo === 'impresora') {
-                bPrint.className = "bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-orange-500/20 transition-all";
-                bTablet.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
                 contVisual.classList.add('opacity-40');
             } else {
-                bTablet.className = "bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-emerald-800/20 transition-all";
-                bPrint.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
                 contVisual.classList.remove('opacity-40');
             }
+        } 
+
+        // --- NUEVA LÓGICA DE IMPRESIÓN SEPARADA PARA TICKET DE CAJA ---
+        async function verificarRecibosCaja() {
+            try {
+                const res = await fetch(`${API}/api/sistema/cola_recibos`);
+                const recibos = await res.json();
+                if (recibos && recibos.length > 0) {
+                    ejecutarImpresionReciboCaja(recibos[0]);
+                }
+            } catch(err) { console.error(err); }
         }
 
-        async function consultarComandas() {
+        function ejecutarImpresionReciboCaja(recibo) {
+            const zona = document.getElementById('zona-invisible-impresion');
+            zona.innerHTML = `
+                <div class="ticket-impresion text-center font-mono text-black" style="color: black !important;">
+                    <p class="text-xs font-black border-b border-black pb-1 mb-2">*** BAR EL TUKAN ***</p>
+                    <div class="text-left border-b border-black pb-2 mb-2 font-black text-xs uppercase leading-relaxed">${recibo.html}</div>
+                    <p class="text-[9px] text-zinc-500 mt-2">--- COBRO CONTROLADO POS ---</p>
+                </div>
+            `;
+            document.body.classList.add('overflow-hidden');
+            zona.classList.remove('hidden');
+            setTimeout(async () => {
+                window.print();
+                zona.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+                await fetch(`${API}/api/sistema/cola_recibos/${recibo.id}`, { method: 'DELETE' });
+            }, 350);
+        }
+
+        // async function consultarComandas() {
+        //     try {
+        //         const res = await fetch(`${API}/api/comandas/barra`);
+        //         const comandas = await res.json();
+
+        //         if (modoOperacion === 'impresora' && comandas.length > 0) {
+        //             for (let c of comandas) {
+        //                 if (!idsComandasProcesadas.has(c.id)) {
+        //                     idsComandasProcesadas.add(c.id);
+        //                     ejecutarImpresionTermica(c);
+        //                 }
+        //             }
+        //         }
+
+        //         renderizarPantallaBarra(comandas);
+
+        //     } catch (e) { console.error(e); }
+        // }
+
+       async function consultarComandas() {
             try {
+                // 1. Primero preguntamos a la DB el modo de operación dictaminado por el Admin
+                const resModo = await fetch(`${API}/api/sistema/modos_pantalla`);
+                const modos = await resModo.json();
+                modoOperacion = modos.barra; // Sobrescribe la variable dinámicamente con el dato de la DB
+
+                // 2. Traemos las comandas activas
                 const res = await fetch(`${API}/api/comandas/barra`);
                 const comandas = await res.json();
 
+                // 3. Si está en modo impresora en la DB, ejecuta la ticketera automática
                 if (modoOperacion === 'impresora' && comandas.length > 0) {
                     for (let c of comandas) {
                         if (!idsComandasProcesadas.has(c.id)) {
@@ -113,11 +175,9 @@
                         }
                     }
                 }
-
                 renderizarPantallaBarra(comandas);
-
             } catch (e) { console.error(e); }
-        }
+        } 
 
         function ejecutarImpresionTermica(c) {
             const zona = document.getElementById('zona-invisible-impresion');
@@ -368,7 +428,7 @@
             }
         }
 
-        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 800); };
+        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 800); setInterval(verificarRecibosCaja, 1500); };
     </script>
 </body>
 

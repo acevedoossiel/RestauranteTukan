@@ -3,16 +3,43 @@ const cors = require('cors');
 const { open } = require('sqlite');
 const sqlite3 = require('sqlite3');
 
+const os = require('os');
+const fs = require('fs');
+const { exec } = require('child_process');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
+
+let ipLocalReal = 'localhost'; 
+const interfaces = os.networkInterfaces();
+
+for (let devName in interfaces) {
+    interfaces[devName].forEach((iface) => {
+        // Buscamos una IP IPv4 que no sea interna (127.0.0.1) y que sea de red local común (192.168.x.x o 10.x.x.x)
+        if (iface.family === 'IPv4' && !iface.internal && (iface.address.startsWith('192.168.') || iface.address.startsWith('10.'))) {
+            ipLocalReal = iface.address;
+        }
+    });
+}
+
+// Sobrescribimos el archivo config.js con la IP fresca del día automáticamente
+const contenidoConfig = `const CONFIG = {\n    API_URL: 'http://${ipLocalReal}:3000'\n};`;
+fs.writeFileSync('./config.js', contenidoConfig, 'utf8');
+
+console.log("\n=========================================================");
+console.log(`✨ IP DETECTADA: ${ipLocalReal}`);
+console.log(`📱 MESEROS DEBEN CONECTARSE A: http://${ipLocalReal}:3000/index.html`);
+console.log("=========================================================\n");
 
 let db;
 
 let comandasCocinaActivas = [];
 let comandasBarraActivas = [];
 let historialComandasCompletadas = [];
+let colaRecibosImpresion = [];
+
 
 (async () => {
     db = await open({ filename: 'restaurante.db', driver: sqlite3.Database });
@@ -96,6 +123,17 @@ let historialComandasCompletadas = [];
     const pinExistente = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'pin_admin'");
     if (!pinExistente) {
         await db.run("INSERT INTO variables_sistema (clave, valor) VALUES ('pin_admin', '1234')");
+    }
+
+    // --- NUEVAS CONFIGURACIONES PERSISTENTES DE PANTALLA ---
+    const modoCocina = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_cocina'");
+    if (!modoCocina) {
+        await db.run("INSERT INTO variables_sistema (clave, valor) VALUES ('modo_pantalla_cocina', 'tablet')");
+    }
+
+    const modoBarra = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_barra'");
+    if (!modoBarra) {
+        await db.run("INSERT INTO variables_sistema (clave, valor) VALUES ('modo_pantalla_barra', 'tablet')");
     }
     
     console.log("✅ Servidor Tukan: Estructura de Base de Datos lista.");
@@ -370,6 +408,90 @@ app.delete('/api/mesas/:numero', async (req, res) => {
     }
 });
 
+// app.post('/api/cobrar_parcial', async (req, res) => {
+//     const { mesa, itemsACobrar } = req.body; 
+    
+//     if (!itemsACobrar || itemsACobrar.length === 0) {
+//         return res.status(400).json({ error: "No se seleccionaron elementos para cobrar" });
+//     }
+
+//     try {
+//         let totalParcial = 0;
+//         let lineasDetalle = [];
+//         let idsParaEliminar = [];
+
+//         for (let item of itemsACobrar) {
+//             const prodEnDb = await db.get('SELECT precio FROM productos WHERE nombre = ?', [item.itemBase]);
+//             let precioBase = prodEnDb ? prodEnDb.precio : 0;
+            
+//             let precioModificadores = 0;
+//             const mods = JSON.parse(item.modificadores || '[]');
+//             mods.forEach(m => precioModificadores += parseFloat(m.precio_extra || 0));
+
+//             let precioFinalItem = precioBase + precioModificadores;
+//             totalParcial += precioFinalItem;
+//             idsParaEliminar.push(item.id);
+
+//             let textoItem = `• 1x ${item.producto} ($${precioFinalItem.toFixed(2)})`;
+//             if (mods.length > 0) textoItem += ` [${mods.map(m=>m.nombre).join(', ')}]`;
+//             lineasDetalle.push(textoItem);
+//         }
+
+//         // const detalleTicketParcial = lineasDetalle.join("<br>");
+//         // const avisoTicket = `
+//         //     *** COBRO PARCIAL ***<br>
+//         //     MESA/FOLIO: ${mesa}<br>
+//         //     ----------------------<br>
+//         //     ${detalleTicketParcial}<br>
+//         //     ----------------------<br>
+//         //     TOTAL PERSONA: $${totalParcial.toFixed(2)}<br>
+//         //     ¡GRACIAS POR SU VISITA!
+//         // `;
+
+//         // ultimaComandaParaCocina = avisoTicket;
+//         // ultimaComandaParaBarra = avisoTicket;
+
+//         // await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', 
+//         //     [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
+//         // );
+
+//         // const placeholders = idsParaEliminar.map(() => '?').join(',');
+//         // await db.run(`DELETE FROM pedidos_activos WHERE id IN (${placeholders})`, idsParaEliminar);
+
+//         // res.json({ success: true, total: totalParcial });
+//         const detalleTicketParcial = lineasDetalle.join("<br>");
+//         const avisoTicket = `
+//             *** COBRO PARCIAL ***<br>
+//             MESA/FOLIO: ${mesa}<br>
+//             ----------------------<br>
+//             ${detalleTicketParcial}<br>
+//             ----------------------<br>
+//             TOTAL PERSONA: $${totalParcial.toFixed(2)}<br>
+//             ¡GRACIAS POR SU VISITA!
+//         `;
+
+//         // Inyectamos a la cola síncrona
+//         colaRecibosImpresion.push({
+//             id: "REC-PAR-" + Date.now(),
+//             mesa: mesa,
+//             tipo: "RECIBO PARCIAL",
+//             html: avisoTicket
+//         });
+
+//         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', 
+//             [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
+//         );
+
+//         const placeholders = idsParaEliminar.map(() => '?').join(',');
+//         await db.run(`DELETE FROM pedidos_activos WHERE id IN (${placeholders})`, idsParaEliminar);
+
+//         res.json({ success: true, total: totalParcial });
+
+//     } catch (err) {
+//         res.status(500).json({ error: err.message });
+//     }
+// });
+
 app.post('/api/cobrar_parcial', async (req, res) => {
     const { mesa, itemsACobrar } = req.body; 
     
@@ -379,8 +501,10 @@ app.post('/api/cobrar_parcial', async (req, res) => {
 
     try {
         let totalParcial = 0;
-        let lineasDetalle = [];
         let idsParaEliminar = [];
+        
+        // Objeto intermedio para agrupar en tiempo real
+        const productosAgrupados = {};
 
         for (let item of itemsACobrar) {
             const prodEnDb = await db.get('SELECT precio FROM productos WHERE nombre = ?', [item.itemBase]);
@@ -394,10 +518,30 @@ app.post('/api/cobrar_parcial', async (req, res) => {
             totalParcial += precioFinalItem;
             idsParaEliminar.push(item.id);
 
-            let textoItem = `• 1x ${item.producto} ($${precioFinalItem.toFixed(2)})`;
-            if (mods.length > 0) textoItem += ` [Mod: ${mods.map(m=>m.nombre).join(', ')}]`;
-            lineasDetalle.push(textoItem);
+            // Generamos una llave única combinando el producto y sus modificadores
+            const listaModsTexto = mods.map(m => m.nombre).sort().join(', ');
+            const llaveUnica = `${item.producto}|${listaModsTexto}|${precioFinalItem}`;
+
+            if (productosAgrupados[llaveUnica]) {
+                productosAgrupados[llaveUnica].cantidad++;
+                productosAgrupados[llaveUnica].subtotal += precioFinalItem;
+            } else {
+                productosAgrupados[llaveUnica] = {
+                    producto: item.producto,
+                    precioFinalItem: precioFinalItem,
+                    subtotal: precioFinalItem,
+                    detalleMods: listaModsTexto,
+                    cantidad: 1
+                };
+            }
         }
+
+        // Construimos las líneas del ticket con el formato x2, x3 agrupado
+        let lineasDetalle = Object.values(productosAgrupados).map(p => {
+            let texto = `• ${p.cantidad}x ${p.producto} ($${p.subtotal.toFixed(2)})`;
+            if (p.detalleMods) texto += ` [${p.detalleMods}]`;
+            return texto;
+        });
 
         const detalleTicketParcial = lineasDetalle.join("<br>");
         const avisoTicket = `
@@ -410,8 +554,12 @@ app.post('/api/cobrar_parcial', async (req, res) => {
             ¡GRACIAS POR SU VISITA!
         `;
 
-        ultimaComandaParaCocina = avisoTicket;
-        ultimaComandaParaBarra = avisoTicket;
+        colaRecibosImpresion.push({
+            id: "REC-PAR-" + Date.now(),
+            mesa: mesa,
+            tipo: "RECIBO PARCIAL",
+            html: avisoTicket
+        });
 
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', 
             [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
@@ -427,13 +575,75 @@ app.post('/api/cobrar_parcial', async (req, res) => {
     }
 });
 
+// app.post('/cerrar_cuenta', async (req, res) => {
+//     const { mesa } = req.body;
+//     const items = await db.all('SELECT * FROM pedidos_activos WHERE mesa = ?', [mesa]);
+    
+//     if (items.length > 0) {
+//         let total = 0;
+//         let lineasDetalle = [];
+
+//         for (let item of items) {
+//             const prodEnDb = await db.get('SELECT precio FROM productos WHERE nombre = ?', [item.itemBase]);
+//             let precioBase = prodEnDb ? prodEnDb.precio : 0;
+            
+//             let precioModificadores = 0;
+//             const mods = JSON.parse(item.modificadores || '[]');
+//             mods.forEach(m => precioModificadores += parseFloat(m.precio_extra || 0));
+
+//             let precioFinalItem = precioBase + precioModificadores;
+//             total += precioFinalItem;
+
+//             let textoItem = `• 1x ${item.producto} ($${precioFinalItem.toFixed(2)})`;
+//             if (mods.length > 0) textoItem += ` [${mods.map(m=>m.nombre).join(', ')}]`;
+//             if (item.nota) textoItem += ` *Nota: ${item.nota}`;
+            
+//             lineasDetalle.push(textoItem);
+//         }
+
+//         // const detalleTicket = lineasDetalle.join("<br>");
+
+//         // await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
+//         // await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);
+//         // await db.run('DELETE FROM control_comandas WHERE mesa = ?', [mesa]);
+        
+//         // res.json({ total, detalle: detalleTicket });
+//         const detalleTicket = lineasDetalle.join("<br>");
+
+//         const ticketHtmlCompleto = `
+//             *** CUENTA TOTAL ***<br>
+//             MESA/FOLIO: ${mesa}<br>
+//             ----------------------<br>
+//             ${detalleTicket}<br>
+//             ----------------------<br>
+//             TOTAL GENERAL: $${total.toFixed(2)}<br>
+//             ¡GRACIAS POR SU VISITA!
+//         `;
+
+//         colaRecibosImpresion.push({
+//             id: "REC-TOT-" + Date.now(),
+//             mesa: mesa,
+//             tipo: "CUENTA TOTAL",
+//             html: ticketHtmlCompleto
+//         });
+
+//         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
+//         await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);
+//         await db.run('DELETE FROM control_comandas WHERE mesa = ?', [mesa]);
+        
+//         res.json({ total, detalle: detalleTicket });
+//     } else {
+//         res.json({ total: 0 });
+//     }
+// });
+
 app.post('/cerrar_cuenta', async (req, res) => {
     const { mesa } = req.body;
     const items = await db.all('SELECT * FROM pedidos_activos WHERE mesa = ?', [mesa]);
     
     if (items.length > 0) {
         let total = 0;
-        let lineasDetalle = [];
+        const productosAgrupados = {};
 
         for (let item of items) {
             const prodEnDb = await db.get('SELECT precio FROM productos WHERE nombre = ?', [item.itemBase]);
@@ -446,14 +656,50 @@ app.post('/cerrar_cuenta', async (req, res) => {
             let precioFinalItem = precioBase + precioModificadores;
             total += precioFinalItem;
 
-            let textoItem = `• 1x ${item.producto} ($${precioFinalItem.toFixed(2)})`;
-            if (mods.length > 0) textoItem += ` [Mod: ${mods.map(m=>m.nombre).join(', ')}]`;
-            if (item.nota) textoItem += ` *Nota: ${item.nota}`;
-            
-            lineasDetalle.push(textoItem);
+            const listaModsTexto = mods.map(m => m.nombre).sort().join(', ');
+            // Agregamos la nota a la llave para que si una hamburguesa lleva nota y otra no, salgan en renglones separados
+            const llaveUnica = `${item.producto}|${listaModsTexto}|${item.nota || ''}|${precioFinalItem}`;
+
+            if (productosAgrupados[llaveUnica]) {
+                productosAgrupados[llaveUnica].cantidad++;
+                productosAgrupados[llaveUnica].subtotal += precioFinalItem;
+            } else {
+                productosAgrupados[llaveUnica] = {
+                    producto: item.producto,
+                    precioFinalItem: precioFinalItem,
+                    subtotal: precioFinalItem,
+                    detalleMods: listaModsTexto,
+                    nota: item.nota,
+                    cantidad: 1
+                };
+            }
         }
 
+        let lineasDetalle = Object.values(productosAgrupados).map(p => {
+            let texto = `• ${p.cantidad}x ${p.producto} ($${p.subtotal.toFixed(2)})`;
+            if (p.detalleMods) texto += ` [${p.detalleMods}]`;
+            if (p.nota) texto += ` *Nota: ${p.nota}`;
+            return texto;
+        });
+
         const detalleTicket = lineasDetalle.join("<br>");
+
+        const ticketHtmlCompleto = `
+            *** CUENTA TOTAL ***<br>
+            MESA/FOLIO: ${mesa}<br>
+            ----------------------<br>
+            ${detalleTicket}<br>
+            ----------------------<br>
+            TOTAL GENERAL: $${total.toFixed(2)}<br>
+            ¡GRACIAS POR SU VISITA!
+        `;
+
+        colaRecibosImpresion.push({
+            id: "REC-TOT-" + Date.now(),
+            mesa: mesa,
+            tipo: "CUENTA TOTAL",
+            html: ticketHtmlCompleto
+        });
 
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
         await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);
@@ -464,6 +710,7 @@ app.post('/cerrar_cuenta', async (req, res) => {
         res.json({ total: 0 });
     }
 });
+
 
 app.get('/api/menu_admin', async (req, res) => {
     const productos = await db.all(`
@@ -767,6 +1014,42 @@ app.post('/api/sistema/verificar_pin', async (req, res) => {
 });
 
 // --- ELIMINAR ARTÍCULO YA ENVIADO (CON AUTORIZACIÓN DE PIN) ---
+// app.post('/api/pedidos/cancelar_item', async (req, res) => {
+//     try {
+//         const { id, mesa, producto, modificadores, nota } = req.body;
+
+//         // 1. Eliminamos estrictamente UN solo ítem que coincida con ese ID único de la cuenta de la mesa
+//         const result = await db.run('DELETE FROM pedidos_activos WHERE id = ? AND mesa = ?', [id, mesa]);
+        
+//         if (result.changes > 0) {
+//             // 2. Buscamos en las comandas informativas activas (estatus = 0) de la mesa si hay registros de ese producto
+//             // para limpiarlo de la pantalla de barra/cocina si aún no se ha completado.
+//             const comandaHeader = await db.all('SELECT id FROM control_comandas WHERE mesa = ? AND estatus = 0', [mesa]);
+            
+//             for (let c of comandaHeader) {
+//                 // Borramos un elemento coincidente de los items de la comanda en disco
+//                 await db.run(`
+//                     DELETE FROM items_comanda 
+//                     WHERE id IN (
+//                         SELECT id FROM items_comanda 
+//                         WHERE comanda_id = ? AND producto = ? AND modificadores = ? AND nota = ? 
+//                         LIMIT 1
+//                     )
+//                 `, [c.id, producto, modificadores, nota]);
+
+//                 // Si por consecuencia la comanda se quedó sin ningún platillo adentro, la borramos por completo
+//                 const restantes = await db.get('SELECT COUNT(*) as cuenta FROM items_comanda WHERE comanda_id = ?', [c.id]);
+//                 if (restantes && restantes.cuenta === 0) {
+//                     await db.run('DELETE FROM control_comandas WHERE id = ?', [c.id]);
+//                 }
+//             }
+//             return res.json({ success: true });
+//         }
+//         res.status(404).json({ success: false, error: "No se encontró el artículo a cancelar" });
+//     } catch(e) { res.status(500).json({ error: e.message }); }
+// });
+
+// --- ELIMINAR ARTÍCULO YA ENVIADO (CON AUTORIZACIÓN DE PIN SANITIZADO) ---
 app.post('/api/pedidos/cancelar_item', async (req, res) => {
     try {
         const { id, mesa, producto, modificadores, nota } = req.body;
@@ -775,12 +1058,17 @@ app.post('/api/pedidos/cancelar_item', async (req, res) => {
         const result = await db.run('DELETE FROM pedidos_activos WHERE id = ? AND mesa = ?', [id, mesa]);
         
         if (result.changes > 0) {
+            // CORRECCIÓN EN SERVER: Si los modificadores llegan como objeto/arreglo, los convertimos a String plano de JSON
+            const modsTextoPlano = typeof modificadores === 'string' 
+                ? modificadores 
+                : JSON.stringify(modificadores || []);
+
             // 2. Buscamos en las comandas informativas activas (estatus = 0) de la mesa si hay registros de ese producto
             // para limpiarlo de la pantalla de barra/cocina si aún no se ha completado.
             const comandaHeader = await db.all('SELECT id FROM control_comandas WHERE mesa = ? AND estatus = 0', [mesa]);
             
             for (let c of comandaHeader) {
-                // Borramos un elemento coincidente de los items de la comanda en disco
+                // Borramos un elemento coincidente de los items de la comanda en disco usando el string plano
                 await db.run(`
                     DELETE FROM items_comanda 
                     WHERE id IN (
@@ -788,7 +1076,7 @@ app.post('/api/pedidos/cancelar_item', async (req, res) => {
                         WHERE comanda_id = ? AND producto = ? AND modificadores = ? AND nota = ? 
                         LIMIT 1
                     )
-                `, [c.id, producto, modificadores, nota]);
+                `, [c.id, producto, modsTextoPlano, nota]);
 
                 // Si por consecuencia la comanda se quedó sin ningún platillo adentro, la borramos por completo
                 const restantes = await db.get('SELECT COUNT(*) as cuenta FROM items_comanda WHERE comanda_id = ?', [c.id]);
@@ -800,6 +1088,103 @@ app.post('/api/pedidos/cancelar_item', async (req, res) => {
         }
         res.status(404).json({ success: false, error: "No se encontró el artículo a cancelar" });
     } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- OBTENER CONFIGURACIÓN DE MODOS DE PRODUCCIÓN ---
+app.get('/api/sistema/modos_pantalla', async (req, res) => {
+    try {
+        const cocina = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_cocina'");
+        const barra = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_barra'");
+        res.json({
+            cocina: cocina ? cocina.valor : 'tablet',
+            barra: barra ? barra.valor : 'tablet'
+        });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- ACTUALIZAR CONFIGURACIÓN DE MODOS DE PRODUCCIÓN ---
+app.put('/api/sistema/modos_pantalla', async (req, res) => {
+    try {
+        const { cocina, barra } = req.body;
+        if (cocina) await db.run("UPDATE variables_sistema SET valor = ? WHERE clave = 'modo_pantalla_cocina'", [cocina]);
+        if (barra) await db.run("UPDATE variables_sistema SET valor = ? WHERE clave = 'modo_pantalla_barra'", [barra]);
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/sistema/cola_recibos', (req, res) => {
+    res.json(colaRecibosImpresion);
+});
+
+app.delete('/api/sistema/cola_recibos/:id', (req, res) => {
+    const { id } = req.params;
+    colaRecibosImpresion = colaRecibosImpresion.filter(r => r.id !== id);
+    res.json({ success: true });
+});
+
+// --- ENDPOINT PARA REIMPRIMIR UN TICKET DESDE EL HISTORIAL DE VENTAS ---
+app.post('/api/reportes/reimprimir', async (req, res) => {
+    try {
+        const { id } = req.body;
+        if (!id) return res.status(400).json({ error: "Falta el ID de la venta" });
+
+        // Buscamos la venta original grabada de forma permanente en disco
+        const venta = await db.get('SELECT * FROM historial_ventas WHERE id = ?', [id]);
+        if (!venta) return res.status(404).json({ error: "No se encontró el registro de venta" });
+
+        // Reconstruimos el diseño exacto corporativo de El Tukan
+        const avisoTicket = `
+            *** REIMPRESIÓN DE TICKET ***<br>
+            MESA/FOLIO: ${venta.mesa}<br>
+            ----------------------<br>
+            ${venta.detalle}<br>
+            ----------------------<br>
+            TOTAL COBRADO: $${venta.total.toFixed(2)}<br>
+            ¡GRACIAS POR SU VISITA!
+        `;
+
+        // Empujamos el ticket a la cola de impresión síncrona de la barra
+        colaRecibosImpresion.push({
+            id: "REC-REIMP-" + Date.now(),
+            mesa: venta.mesa,
+            tipo: "REIMPRESION",
+            html: avisoTicket
+        });
+
+        res.json({ success: true });
+    } catch(e) { 
+        res.status(500).json({ error: e.message }); 
+    }
+});
+
+// --- ACTUALIZAR NOMBRE DE UNA CATEGORÍA PADRE ---
+app.put('/api/categorias/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre } = req.body;
+        if (!nombre || nombre.trim().length === 0) {
+            return res.status(400).json({ error: "El nombre no puede estar vacío" });
+        }
+        await db.run('UPDATE categorias SET nombre = ? WHERE id = ?', [nombre.trim(), id]);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- ACTUALIZAR NOMBRE DE UNA SUBCATEGORÍA ---
+app.put('/api/subcategorias/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre } = req.body;
+        if (!nombre || nombre.trim().length === 0) {
+            return res.status(400).json({ error: "El nombre no puede estar vacío" });
+        }
+        await db.run('UPDATE subcategorias SET nombre = ? WHERE id = ?', [nombre.trim(), id]);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.listen(3000, '0.0.0.0', () => console.log("🚀 Servidor Tukan activo en puerto 3000"));

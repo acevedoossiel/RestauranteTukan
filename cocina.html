@@ -50,13 +50,6 @@
                 <p class="text-xs text-emerald-800/50 font-black uppercase tracking-widest">Control dinámico de comandas</p>
             </div>
 
-            <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-                <button id="btn-modo-print" onclick="cambiarModoTrabajo('impresora')"
-                    class="px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">🖨️ Impresora</button>
-                <button id="btn-modo-tablet" onclick="cambiarModoTrabajo('tablet')"
-                    class="px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">📱 Tablet</button>
-            </div>
-
             <button onclick="toggleHistorial()"
                 class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95">📦
                 Ver Recuperación</button>
@@ -80,27 +73,63 @@
         let idsComandasProcesadas = new Set();
         let checkboxesMarcadosCocina = new Set();
 
+        // function cambiarModoTrabajo(modo) {
+        //     modoOperacion = modo;
+        //     localStorage.setItem('modo_cocina', modo);
+
+        //     const bPrint = document.getElementById('btn-modo-print');
+        //     const bTablet = document.getElementById('btn-modo-tablet');
+        //     const contVisual = document.getElementById('contenedor-comandas-visuales');
+
+        //     if (modo === 'impresora') {
+        //         bPrint.className = "bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-orange-500/20 transition-all";
+        //         bTablet.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
+        //         contVisual.classList.add('opacity-40');
+        //     } else {
+        //         bTablet.className = "bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-emerald-800/20 transition-all";
+        //         bPrint.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
+        //         contVisual.classList.remove('opacity-40');
+        //     }
+        // }
+
         function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
             localStorage.setItem('modo_cocina', modo);
 
-            const bPrint = document.getElementById('btn-modo-print');
-            const bTablet = document.getElementById('btn-modo-tablet');
             const contVisual = document.getElementById('contenedor-comandas-visuales');
+            if (!contVisual) return;
 
             if (modo === 'impresora') {
-                bPrint.className = "bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-orange-500/20 transition-all";
-                bTablet.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
                 contVisual.classList.add('opacity-40');
             } else {
-                bTablet.className = "bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-emerald-800/20 transition-all";
-                bPrint.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
                 contVisual.classList.remove('opacity-40');
             }
         }
 
+        // async function consultarComandas() {
+        //     try {
+        //         const res = await fetch(`${API}/api/comandas/cocina`);
+        //         const comandas = await res.json();
+
+        //         if (modoOperacion === 'impresora' && comandas.length > 0) {
+        //             for (let c of comandas) {
+        //                 if (!idsComandasProcesadas.has(c.id)) {
+        //                     idsComandasProcesadas.add(c.id);
+        //                     ejecutarImpresionTermica(c);
+        //                 }
+        //             }
+        //         }
+
+        //         renderizarPantallaTablet(comandas);
+
+        //     } catch (e) { console.error(e); }
+        // }
         async function consultarComandas() {
             try {
+                const resModo = await fetch(`${API}/api/sistema/modos_pantalla`);
+                const modos = await resModo.json();
+                modoOperacion = modos.cocina;
+
                 const res = await fetch(`${API}/api/comandas/cocina`);
                 const comandas = await res.json();
 
@@ -112,9 +141,7 @@
                         }
                     }
                 }
-
                 renderizarPantallaTablet(comandas);
-
             } catch (e) { console.error(e); }
         }
 

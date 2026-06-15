@@ -210,7 +210,7 @@
                 } else {
                     contLlevar.innerHTML = foliosLlevar.map(f => `
                         <button onclick="irAMenu('${f}')" class="bg-white/80 backdrop-blur-sm border-b-4 border-orange-500 text-orange-600 p-3 rounded-xl font-black text-xs shadow-md shadow-orange-500/5 active:scale-95 transition-all">
-                            存放 🥡 ${f}
+                            🥡 ${f}
                         </button>
                     `).join('');
                 }
@@ -325,50 +325,82 @@
             });
         }
 
-        function lanzarPersonalizador(producto) {
+        // function lanzarPersonalizador(producto) {
+        //     productoEnPersonalizacion = producto;
+
+        //     if (!producto.modificadores || producto.modificadores.length === 0) {
+        //         confirmarAgregadoDirecto();
+        //     } else {
+        //         document.getElementById('mod-producto-titulo').innerText = producto.nombre;
+        //         document.getElementById('mod-nota-libre').value = "";
+
+        //         const contChecks = document.getElementById('contenedor-mods-checks');
+        //         contChecks.innerHTML = producto.modificadores.map((m, index) => `
+        //     <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
+        //         <div class="flex items-center gap-2">
+        //             <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-emerald-800 rounded focus:ring-0">
+        //             <span class="text-xs font-bold text-slate-700">${m.nombre}</span>
+        //         </div>
+        //         <span class="text-xs font-mono font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
+        //             ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
+        //         </span>
+        //     </label>
+        // `).join('');
+        //         document.getElementById('modal-modificadores').classList.remove('hidden');
+        //     }
+        // }
+
+       function lanzarPersonalizador(producto) {
             productoEnPersonalizacion = producto;
 
-            if (!producto.modificadores || producto.modificadores.length === 0) {
-                confirmarAgregadoDirecto();
-            } else {
-                document.getElementById('mod-producto-titulo').innerText = producto.nombre;
-                document.getElementById('mod-nota-libre').value = "";
+            document.getElementById('mod-producto-titulo').innerText = producto.nombre;
+            document.getElementById('mod-nota-libre').value = "";
 
-                const contChecks = document.getElementById('contenedor-mods-checks');
+            const contChecks = document.getElementById('contenedor-mods-checks');
+            
+            // Si tiene modificadores los mapea, si no, deja el espacio vacío limpiamente
+            if (producto.modificadores && producto.modificadores.length > 0) {
                 contChecks.innerHTML = producto.modificadores.map((m, index) => `
-            <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-emerald-800 rounded focus:ring-0">
-                    <span class="text-xs font-bold text-slate-700">${m.nombre}</span>
-                </div>
-                <span class="text-xs font-mono font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
-                    ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
-                </span>
-            </label>
-        `).join('');
-                document.getElementById('modal-modificadores').classList.remove('hidden');
-            }
-        }
-
-        function confirmarAgregadoDirecto() {
-            const existe = itemsNuevos.find(i =>
-                i.nombre === productoEnPersonalizacion.nombre &&
-                i.modificadores.length === 0 &&
-                i.nota === ""
-            );
-
-            if (existe) {
-                existe.cant++;
+                    <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-emerald-800 rounded focus:ring-0">
+                            <span class="text-xs font-bold text-slate-700">${m.nombre}</span>
+                        </div>
+                        <span class="text-xs font-mono font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
+                            ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
+                        </span>
+                    </label>
+                `).join('');
             } else {
-                itemsNuevos.push({
-                    nombre: productoEnPersonalizacion.nombre,
-                    modificadores: [],
-                    nota: "",
-                    cant: 1
-                });
+                contChecks.innerHTML = `
+                    <div class="text-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 font-medium text-[11px] uppercase tracking-wide">
+                        ✨ Sin modificadores
+                    </div>
+                `;
             }
-            actualizarResumen();
-        }
+            
+            document.getElementById('modal-modificadores').classList.remove('hidden');
+        } 
+
+        // function confirmarAgregadoDirecto() {
+        //     const existe = itemsNuevos.find(i =>
+        //         i.nombre === productoEnPersonalizacion.nombre &&
+        //         i.modificadores.length === 0 &&
+        //         i.nota === ""
+        //     );
+
+        //     if (existe) {
+        //         existe.cant++;
+        //     } else {
+        //         itemsNuevos.push({
+        //             nombre: productoEnPersonalizacion.nombre,
+        //             modificadores: [],
+        //             nota: "",
+        //             cant: 1
+        //         });
+        //     }
+        //     actualizarResumen();
+        // }
 
 
         function cerrarModalModificadores() { document.getElementById('modal-modificadores').classList.add('hidden'); productoEnPersonalizacion = null; }
@@ -651,6 +683,50 @@
             }).join('');
         }
 
+        // function avanzarPasoPersona(esUltimo) {
+        //     const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
+        //     if (checks.length === 0) return alert(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
+
+        //     const idsSeleccionados = Array.from(checks).map(c => parseInt(c.value));
+        //     const itemsPersona = itemsDisponiblesFlujo.filter(item => idsSeleccionados.includes(item.id));
+
+        //     let totalPersona = 0;
+        //     itemsPersona.forEach(item => {
+        //         let precioItem = item.precio || 0;
+        //         const mods = JSON.parse(item.modificadores || '[]');
+        //         mods.forEach(m => precioItem += (m.precio_extra || 0));
+        //         totalPersona += precioItem;
+        //     });
+
+        //     subcuentasCalculadas.push({
+        //         persona: personaActualFlujo,
+        //         items: itemsPersona,
+        //         total: totalPersona
+        //     });
+
+        //     itemsDisponiblesFlujo = itemsDisponiblesFlujo.filter(item => !idsSeleccionados.includes(item.id));
+
+        //     if (!esUltimo) {
+        //         personaActualFlujo++;
+        //         iniciarPasoPersona();
+        //     } else {
+        //         if (itemsDisponiblesFlujo.length > 0) {
+        //             alert(`¡Atención! Quedaron ${itemsDisponiblesFlujo.length} productos sin asignar a ninguna cuenta. Se sumarán a la última persona de forma automática.`);
+        //             let extraTotal = 0;
+        //             itemsDisponiblesFlujo.forEach(item => {
+        //                 let precioItem = item.precio || 0;
+        //                 const mods = JSON.parse(item.modificadores || '[]');
+        //                 mods.forEach(m => precioItem += (m.precio_extra || 0));
+        //                 extraTotal += precioItem;
+        //                 subcuentasCalculadas[subcuentasCalculadas.length - 1].items.push(item);
+        //             });
+        //             subcuentasCalculadas[subcuentasCalculadas.length - 1].total += extraTotal;
+        //         }
+
+        //         mostrarConfirmacionCuentasSeparadas();
+        //     }
+        // }
+
         function avanzarPasoPersona(esUltimo) {
             const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
             if (checks.length === 0) return alert(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
@@ -660,7 +736,11 @@
 
             let totalPersona = 0;
             itemsPersona.forEach(item => {
-                let precioItem = item.precio || 0;
+                // CORRECCIÓN CLAVE: Buscamos el precio base real en el menú global usando el itemBase
+                const prodMenu = menuGlobal.find(p => p.nombre === item.itemBase);
+                let precioBase = prodMenu ? prodMenu.precio : 0;
+                
+                let precioItem = precioBase;
                 const mods = JSON.parse(item.modificadores || '[]');
                 mods.forEach(m => precioItem += (m.precio_extra || 0));
                 totalPersona += precioItem;
@@ -682,7 +762,11 @@
                     alert(`¡Atención! Quedaron ${itemsDisponiblesFlujo.length} productos sin asignar a ninguna cuenta. Se sumarán a la última persona de forma automática.`);
                     let extraTotal = 0;
                     itemsDisponiblesFlujo.forEach(item => {
-                        let precioItem = item.precio || 0;
+                        // CORRECCIÓN CLAVE: Buscamos el precio base real también para los elementos huérfanos restantes
+                        const prodMenu = menuGlobal.find(p => p.nombre === item.itemBase);
+                        let precioBase = prodMenu ? prodMenu.precio : 0;
+
+                        let precioItem = precioBase;
                         const mods = JSON.parse(item.modificadores || '[]');
                         mods.forEach(m => precioItem += (m.precio_extra || 0));
                         extraTotal += precioItem;
@@ -720,20 +804,20 @@
         }
 
         async function ejecutarCobroCompleto() {
-            if (confirm(`¿Liquidar la cuenta total de la mesa ${mesaSel}?`)) {
+            if (confirm(`¿Mandar a imprimir la cuenta total de la mesa ${mesaSel}?`)) {
                 const res = await fetch(`${API}/cerrar_cuenta`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mesa: mesaSel })
                 });
                 const d = await res.json();
-                alert("CUENTA TOTAL PAGADA: $" + d.total.toFixed(2));
+                alert("Recibo de Cuenta Total por: $" + d.total.toFixed(2));
                 location.reload();
             }
         }
 
         async function procesarCobroParcialFinalMasivo() {
-            if (!confirm("¿Confirmas que los desgloses son correctos? Se procesarán los cobros independientes y se liberará la mesa.")) return;
+            if (!confirm("¿Confirmas que los desgloses son correctos?")) return;
 
             try {
                 for (let sc of subcuentasCalculadas) {
@@ -744,10 +828,10 @@
                     });
                 }
 
-                alert("¡Todas las partes de la cuenta han sido liquidadas con éxito!");
+                alert("Recibos de cuentas parciales generados exitosamente.");
                 location.reload();
             } catch (err) {
-                alert("Ocurrió un error al procesar el cobro masivo.");
+                alert("Ocurrió un error al procesar el recibo.");
             }
         }
 
@@ -755,14 +839,14 @@
             const esSeparada = document.getElementById('chk-cuenta-separada').checked;
 
             if (!esSeparada) {
-                if (confirm(`¿Liquidar la cuenta total de la mesa ${mesaSel}?`)) {
+                if (confirm(`¿Mandar a imprimir la cuenta total de la mesa ${mesaSel}?`)) {
                     const res = await fetch(`${API}/cerrar_cuenta`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ mesa: mesaSel })
                     });
                     const d = await res.json();
-                    alert("CUENTA TOTAL PAGADA: $" + d.total.toFixed(2));
+                    alert("Recibo de Cuenta Total por: $" + d.total.toFixed(2));
                     location.reload();
                 }
             } else {
@@ -851,6 +935,70 @@
             }
         }
 
+        // function abrirModalEdicionResumen() {
+        //     const contenedorLista = document.getElementById('lista-desglosada-edicion');
+
+        //     if (itemsEnDB.length === 0) {
+        //         alert("Esta mesa no tiene consumos enviados por modificar.");
+        //         return;
+        //     }
+
+        //     // Generamos la lista desglosada detallada únicamente dentro del modal de seguridad
+        //     contenedorLista.innerHTML = itemsEnDB.map(item => {
+        //         const mods = JSON.parse(item.modificadores || '[]');
+        //         let sublinea = mods.map(m => m.nombre).join(', ');
+        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+
+        //         const itemSeguro = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        //         return `
+        //     <li class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex justify-between items-center shadow-sm">
+        //         <div>
+        //             <div class="font-black text-xs uppercase text-slate-800">• 1x ${item.producto}</div>
+        //             ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+        //         </div>
+        //         <!-- Botón de cancelación controlado por PIN -->
+        //         <button onclick="solicitarCancelacionItem('${itemSeguro}')" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
+        //             🗑️
+        //         </button>
+        //     </li>`;
+        //     }).join('');
+
+        //     document.getElementById('modal-edicion-resumen').classList.remove('hidden');
+        // }
+
+        // function abrirModalEdicionResumen() {
+        //     const contenedorLista = document.getElementById('lista-desglosada-edicion');
+
+        //     if (itemsEnDB.length === 0) {
+        //         alert("Esta mesa no tiene consumos enviados por modificar.");
+        //         return;
+        //     }
+
+        //     // Generamos la lista desglosada detallada únicamente dentro del modal de seguridad
+        //     contenedorLista.innerHTML = itemsEnDB.map(item => {
+        //         const mods = JSON.parse(item.modificadores || '[]');
+        //         let sublinea = mods.map(m => m.nombre).join(', ');
+        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
+
+        //         // CORRECCIÓN CLAVE: Convertimos el objeto a un string JSON sanitizado para HTML
+        //         const itemSeguro = JSON.stringify(item).replace(/"/g, '&quot;');
+
+        //         return `
+        //     <li class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex justify-between items-center shadow-sm">
+        //         <div>
+        //             <div class="font-black text-xs uppercase text-slate-800">• 1x ${item.producto}</div>
+        //             ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
+        //         </div>
+        //         <!-- QUITAMOS LAS COMILLAS SIMPLES DE LA FUNCIÓN: Pasamos el JSON sanitizado directo -->
+        //         <button onclick="solicitarCancelacionItem(${itemSeguro})" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
+        //             🗑️
+        //         </button>
+        //     </li>`;
+        //     }).join('');
+
+        //     document.getElementById('modal-edicion-resumen').classList.remove('hidden');
+        // }
         function abrirModalEdicionResumen() {
             const contenedorLista = document.getElementById('lista-desglosada-edicion');
 
@@ -859,13 +1007,11 @@
                 return;
             }
 
-            // Generamos la lista desglosada detallada únicamente dentro del modal de seguridad
-            contenedorLista.innerHTML = itemsEnDB.map(item => {
+            // Generamos la lista desglosada pasando únicamente el índice 'idx'
+            contenedorLista.innerHTML = itemsEnDB.map((item, idx) => {
                 const mods = JSON.parse(item.modificadores || '[]');
                 let sublinea = mods.map(m => m.nombre).join(', ');
                 if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
-
-                const itemSeguro = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                 return `
             <li class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex justify-between items-center shadow-sm">
@@ -873,14 +1019,22 @@
                     <div class="font-black text-xs uppercase text-slate-800">• 1x ${item.producto}</div>
                     ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
                 </div>
-                <!-- Botón de cancelación controlado por PIN -->
-                <button onclick="solicitarCancelacionItem('${itemSeguro}')" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
+                <button onclick="solicitarCancelacionItemDirecto(${idx})" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
                     🗑️
                 </button>
             </li>`;
             }).join('');
 
             document.getElementById('modal-edicion-resumen').classList.remove('hidden');
+        }
+
+        function solicitarCancelacionItemDirecto(index) {
+            // Recuperamos el objeto nativo 100% limpio desde el array en memoria RAM
+            const item = itemsEnDB[index];
+            if (!item) return;
+
+            // Ejecutamos tu flujo original de confirmación y PIN pasando el objeto impecable
+            solicitarCancelacionItem(JSON.stringify(item));
         }
 
         function cerrarModalEdicionResumen() {

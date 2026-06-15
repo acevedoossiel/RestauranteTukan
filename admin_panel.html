@@ -60,8 +60,10 @@
 <body class="w-full min-h-screen flex overflow-x-hidden font-sans relative"
     style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="absolute inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+    <!-- <aside id="sidebar"
+        class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-white/95 backdrop-blur-md text-emerald-950 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0 border-r border-slate-200/60 relative z-10"> -->
     <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-white/95 backdrop-blur-md text-emerald-950 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0 border-r border-slate-200/60 relative z-10">
+        class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-white/95 backdrop-blur-md text-emerald-950 transform -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 h-screen transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0 border-r border-slate-200/60 relative z-10">
         <div class="p-6 text-center border-b border-slate-800/60">
             <img src="resources/Tukan-logo.png" alt="Logo El Tukan" class="mx-auto w-24 h-auto mb-3 drop-shadow-md">
             <h1 class="text-lg font-black uppercase tracking-wider ext-emerald-900">
@@ -78,6 +80,11 @@
             <button onclick="verTab('tab-categorias', this)"
                 class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all">
                 📂 Categorías
+            </button>
+
+            <button onclick="verTab('tab-configuracion', this)"
+                class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all">
+                ⚙️ Configuración
             </button>
 
             <button onclick="verTab('tab-reportes', this)"
@@ -151,22 +158,6 @@
                         class="w-full bg-orange-500 hover:bg-emerald-800 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-500/10 mt-6 active:scale-95 transition-all">Guardar
                         Producto</button>
                 </div>
-
-                <div
-                    class="bg-slate-50 p-6 rounded-3xl border border-slate-200/60 mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h4 class="text-sm font-black text-emerald-950 uppercase tracking-tight">Seguridad de
-                            Cuentas</h4>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PIN de Gerencia
-                            para autorizar cancelaciones de comandas</p>
-                    </div>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <input type="password" id="input-pin-sistema" maxlength="6" placeholder="Nuevo PIN"
-                            class="bg-white border-2 border-slate-200/80 rounded-xl px-4 py-2 text-center font-mono font-black text-sm text-slate-700 w-32 focus:border-orange-500 focus:outline-none transition-all">
-                        <button onclick="actualizarPinGerencia()"
-                            class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition active:scale-95">Cambiar
-                            PIN</button>
-                    </div>
                 </div>
 
                 <div class="mt-4 mb-8">
@@ -250,6 +241,57 @@
             </div>
         </section>
 
+        <!-- --- NUEVA SECCIÓN DE CONFIGURACIÓN GENERAL DEL SISTEMA --- -->
+        <section id="tab-configuracion" class="tab-content hidden">
+            <div class="w-full">
+                <header class="mb-8 pt-4 md:pt-0">
+                    <h2 class="text-3xl font-black text-emerald-950 tracking-tight">Configuración del Sistema</h2>
+                    <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest text-balance">Parámetros operativos de hardware y seguridad</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Control del PIN Gerencial -->
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex flex-col justify-between gap-4">
+                        <div>
+                            <h4 class="text-sm font-black text-emerald-950 uppercase tracking-tight">Seguridad de Cuentas</h4>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PIN de Gerencia para autorizar cancelaciones de comandas</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" id="input-pin-sistema" maxlength="6" placeholder="Nuevo PIN"
+                                class="bg-white border-2 border-slate-200/80 rounded-xl px-4 py-2 text-center font-mono font-black text-sm text-slate-700 w-full focus:border-orange-500 focus:outline-none transition-all">
+                            <button onclick="actualizarPinGerencia()"
+                                class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition active:scale-95 whitespace-nowrap">Cambiar PIN</button>
+                        </div>
+                    </div>
+
+                    <!-- Modos de Operación Impresora / Tablet -->
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex flex-col justify-between gap-4">
+                        <div>
+                            <h4 class="text-sm font-black text-emerald-950 uppercase tracking-tight">Monitores de Producción</h4>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Define si el área recibe comandas en tablet o por impresora térmica</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-slate-700 uppercase">🍳 monitor Cocina:</span>
+                                <select id="select-modo-cocina" class="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-orange-500 transition-all">
+                                    <option value="tablet">📱 Modo Tablet</option>
+                                    <option value="impresora">🖨️ Modo Impresora</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-slate-700 uppercase">🍹 monitor Barra:</span>
+                                <select id="select-modo-barra" class="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-orange-500 transition-all">
+                                    <option value="tablet">📱 Modo Tablet</option>
+                                    <option value="impresora">🖨️ Modo Impresora</option>
+                                </select>
+                            </div>
+                            <button onclick="guardarModosPantalla()" class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition active:scale-95 shadow-md shadow-orange-500/10">Guardar Modos de Producción</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="tab-reportes" class="tab-content hidden">
             <div class="w-full pb-20">
                 <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -284,11 +326,19 @@
                     <div
                         class="lg:col-span-2 bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-100">
                         <table class="overflow-x-auto w-full text-left">
+                            <!-- <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black">
+                                <tr>
+                                    <th class="p-4">Hora/Mesa</th>
+                                    <th class="p-4">Detalle</th>
+                                    <th class="p-4 text-right">Total</th>
+                                </tr>
+                            </thead> -->
                             <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black">
                                 <tr>
                                     <th class="p-4">Hora/Mesa</th>
                                     <th class="p-4">Detalle</th>
                                     <th class="p-4 text-right">Total</th>
+                                    <th class="p-4 text-center">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="rep-tabla-ventas"
@@ -374,6 +424,10 @@
             btn.classList.add('bg-orange-500', 'text-white', 'shadow-md', 'shadow-orange-500/10');
             btn.classList.remove('text-slate-400', 'hover:bg-slate-900');
 
+            if (tabId === 'tab-reportes') {
+                cargarReportes();
+            }
+
             if (window.innerWidth < 1024) toggleSidebar();
         }
 
@@ -440,6 +494,10 @@
                     });
                 }
                 document.getElementById('lista-estructura').innerHTML = htmlEstructura;
+                fetch(`${API}/api/sistema/modos_pantalla`).then(r => r.json()).then(m => {
+                    document.getElementById('select-modo-cocina').value = m.cocina;
+                    document.getElementById('select-modo-barra').value = m.barra;
+                });
             } catch (error) { console.error(error); }
         }
 
@@ -637,7 +695,7 @@
                         const valor = m.precio_extra !== 0 ? Math.abs(m.precio_extra).toFixed(0) : '0';
                         return `<span class="bg-slate-50 text-slate-600 text-xs px-2 py-1 rounded-lg border border-slate-100 font-mono inline-block my-0.5">${m.nombre} (${signo}${valor})</span>`;
                     }).join(' ')
-                    : `<span class="text-slate-400 text-xs font-normal italic">Sin extras comunes</span>`;
+                    : `<span class="text-slate-400 text-xs font-normal italic">Sin modificadores</span>`;
 
                 return `
             <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-100">
@@ -684,20 +742,116 @@
             document.getElementById('rep-gastos').innerText = `$${data.metricas.gastos.toFixed(2)}`;
             document.getElementById('rep-ganancia').innerText = `$${data.metricas.ganancia.toFixed(2)}`;
 
-            document.getElementById('rep-tabla-ventas').innerHTML = data.ventas.map(v => `
-        <tr class="hover:bg-slate-50 transition-colors">
-            <td class="p-4">
-                <div class="text-blue-600 font-black">Mesa ${v.mesa}</div>
-                <div class="text-[9px] text-slate-400 font-mono">
-                    ${new Date(v.fecha + "Z").toLocaleString('es-MX', {
-                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-            }).replace(',', ' |')}
-                </div>
-            </td>
-            <td class="p-4 text-slate-500 font-normal italic">${v.detalle}</td>
-            <td class="p-4 text-right text-green-600 font-black">$${v.total.toFixed(2)}</td>
-        </tr>
-    `).join('');
+    //         document.getElementById('rep-tabla-ventas').innerHTML = data.ventas.map(v => `
+    //     <tr class="hover:bg-slate-50 transition-colors">
+    //         <td class="p-4">
+    //             <div class="text-blue-600 font-black">Mesa ${v.mesa}</div>
+    //             <div class="text-[9px] text-slate-400 font-mono">
+    //                 ${new Date(v.fecha + "Z").toLocaleString('es-MX', {
+    //             day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+    //         }).replace(',', ' |')}
+    //             </div>
+    //         </td>
+    //         <td class="p-4 text-slate-500 font-normal italic">${v.detalle}</td>
+    //         <td class="p-4 text-right text-green-600 font-black">$${v.total.toFixed(2)}</td>
+    //     </tr>
+    // `).join('');
+            // --- CORRECCIÓN REEMPLAZAR EL MAPEADO DE TABLA DENTRO DE cargarReportes() ---
+    //         document.getElementById('rep-tabla-ventas').innerHTML = data.ventas.map(v => `
+    //     <tr class="hover:bg-slate-50 transition-colors">
+    //         <td class="p-4">
+    //             <div class="text-blue-600 font-black">Mesa ${v.mesa}</div>
+    //             <div class="text-[9px] text-slate-400 font-mono">
+    //                 ${new Date(v.fecha + "Z").toLocaleString('es-MX', {
+    //                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+    //                 }).replace(',', ' |')}
+    //             </div>
+    //         </td>
+    //         <td class="p-4 text-slate-500 font-normal italic">${v.detalle}</td>
+    //         <td class="p-4 text-right text-green-600 font-black">$${v.total.toFixed(2)}</td>
+    //         <td class="p-4 text-center">
+    //             <button onclick="reimprimirTicketManual(${v.id})" 
+    //                 class="bg-slate-900 hover:bg-orange-500 text-white px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition active:scale-95 shadow-sm">
+    //                 🖨️ Reimprimir
+    //             </button>
+    //         </td>
+    //     </tr>
+    // `).join('');
+
+            document.getElementById('rep-tabla-ventas').innerHTML = data.ventas.map(v => {
+                // 1. Tomamos las líneas de productos separadas por <br> de la base de datos
+                const lineasOriginales = v.detalle.split('<br>');
+                const productosAgrupados = {};
+
+                lineasOriginales.forEach(linea => {
+                    if (!linea.trim()) return;
+
+                    // Expresión regular para extraer la cantidad, el nombre del producto y el precio unitario
+                    // Ejemplo de entrada: "• 1x Manzanita 355 ml ($35.00)" o con modificadores.
+                    const match = linea.match(/• (\d+)x (.*?) \(\$(.*?)\)/);
+                    if (match) {
+                        const cantidad = parseInt(match[1]);
+                        const nombreYModificadores = match[2].trim();
+                        const precioUnitario = parseFloat(match[3]);
+
+                        // Creamos una llave única combinando el nombre, modificadores y el precio unitario
+                        const llaveUnica = `${nombreYModificadores}|${precioUnitario}`;
+
+                        if (productosAgrupados[llaveUnica]) {
+                            productosAgrupados[llaveUnica].cantidad += cantidad;
+                        } else {
+                            productosAgrupados[llaveUnica] = {
+                                nombre: nombreYModificadores,
+                                precioUnitario: precioUnitario,
+                                cantidad: cantidad
+                            };
+                        }
+                    } else {
+                        // Salvaguarda por si hay líneas con formato de Notas libres u otros textos sin formato regular
+                        const llaveTexto = linea.trim();
+                        if (productosAgrupados[llaveTexto]) {
+                            productosAgrupados[llaveTexto].cantidad += 1;
+                        } else {
+                            productosAgrupados[llaveTexto] = {
+                                nombre: llaveTexto,
+                                precioUnitario: 0,
+                                cantidad: 0,
+                                esTextoPlano: true
+                            };
+                        }
+                    }
+                });
+
+                // 2. Reconstruimos el HTML del detalle agrupando las cantidades
+                const detalleAgrupadoHtml = Object.values(productosAgrupados).map(p => {
+                    if (p.esTextoPlano) return p.nombre; // Si es una nota o texto plano se imprime igual
+                    
+                    const totalAgrupadoProducto = p.cantidad * p.precioUnitario;
+                    return `• ${p.cantidad}x ${p.nombre} ($${totalAgrupadoProducto.toFixed(2)})`;
+                }).join('<br>');
+
+                // 3. Retornamos el renglón de la tabla con el detalle perfectamente limpio
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4">
+                            <div class="text-blue-600 font-black">Mesa ${v.mesa}</div>
+                            <div class="text-[9px] text-slate-400 font-mono">
+                                ${new Date(v.fecha + "Z").toLocaleString('es-MX', {
+                                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+                                }).replace(',', ' |')}
+                            </div>
+                        </td>
+                        <td class="p-4 text-slate-500 font-normal italic">${detalleAgrupadoHtml}</td>
+                        <td class="p-4 text-right text-green-600 font-black">$${v.total.toFixed(2)}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="reimprimirTicketManual(${v.id})" 
+                                class="bg-slate-900 hover:bg-orange-500 text-white px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition active:scale-95 shadow-sm">
+                                🖨️ Reimprimir
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
 
             document.getElementById('rep-lista-top').innerHTML = data.resumenProductos.map(p => `
         <li class="flex justify-between p-2 bg-slate-50 rounded-lg text-[11px] uppercase text-slate-700">
@@ -748,10 +902,60 @@
             }
         }
 
+        async function guardarModosPantalla() {
+            const cocina = document.getElementById('select-modo-cocina').value;
+            const barra = document.getElementById('select-modo-barra').value;
+
+            const res = await fetch(`${API}/api/sistema/modos_pantalla`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cocina, barra })
+            });
+            if (res.ok) {
+                alert("⚙️ Configuraciones de hardware guardadas exitosamente en la Base de Datos.");
+                cargarDatos();
+            }
+        }
+
+        async function reimprimirTicketManual(ventaId) {
+            try {
+                const res = await fetch(`${API}/api/reportes/reimprimir`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: ventaId })
+                });
+                
+                if (res.ok) {
+                    alert("📋 Orden de reimpresión enviada con éxito a la ticketera de Barra.");
+                } else {
+                    alert("Error al intentar solicitar la reimpresión del ticket.");
+                }
+            } catch(err) {
+                console.error(err);
+                alert("Fallo de conexión con el servidor.");
+            }
+        }
+
+        // window.addEventListener('load', () => {
+        //     const hoy = new Date().toISOString().split('T')[0];
+        //     document.getElementById('rep-inicio').value = hoy;
+        //     document.getElementById('rep-fin').value = hoy;
+        //     cargarDatos();
+        // });
         window.addEventListener('load', () => {
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('rep-inicio').value = hoy;
-            document.getElementById('rep-fin').value = hoy;
+            // Extraemos los componentes locales de la fecha de la máquina
+            const fechaLocal = new Date();
+            const anio = fechaLocal.getFullYear();
+            // Agregamos un cero a la izquierda si el mes o día es menor a 10 para cumplir el formato YYYY-MM-DD
+            const mes = String(fechaLocal.getMonth() + 1).padStart(2, '0');
+            const dia = String(fechaLocal.getDate()).padStart(2, '0');
+            
+            const hoyLocal = `${anio}-${mes}-${dia}`;
+
+            // Seteamos los inputs con la fecha real del negocio
+            document.getElementById('rep-inicio').value = hoyLocal;
+            document.getElementById('rep-fin').value = hoyLocal;
+            
             cargarDatos();
         });
     </script>
