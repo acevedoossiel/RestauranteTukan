@@ -517,15 +517,29 @@
             }
         }
 
+        // function procesarTextoModificadores(texto) {
+        //     if (!texto.trim()) return [];
+        //     return texto.split('\n').map(linea => {
+        //         const partes = linea.split(',');
+        //         return {
+        //             nombre: partes[0] ? partes[0].trim() : "Extra",
+        //             precio_extra: partes[1] ? parseFloat(partes[1].trim()) || 0 : 0
+        //         };
+        //     }).filter(m => m.nombre !== "");
+        // }
+
         function procesarTextoModificadores(texto) {
             if (!texto.trim()) return [];
-            return texto.split('\n').map(linea => {
-                const partes = linea.split(',');
-                return {
-                    nombre: partes[0] ? partes[0].trim() : "Extra",
-                    precio_extra: partes[1] ? parseFloat(partes[1].trim()) || 0 : 0
-                };
-            }).filter(m => m.nombre !== "");
+            return texto.split('\n')
+                .map(linea => linea.trim()) // Quitamos espacios sueltos al inicio o fin de cada línea
+                .filter(linea => linea.length > 0) // 🔥 CORRECCIÓN: Eliminamos por completo las líneas vacías antes de procesarlas
+                .map(linea => {
+                    const partes = linea.split(',');
+                    return {
+                        nombre: partes[0] ? partes[0].trim() : "Extra",
+                        precio_extra: partes[1] ? parseFloat(partes[1].trim()) || 0 : 0
+                    };
+                });
         }
 
         async function guardarProducto() {
