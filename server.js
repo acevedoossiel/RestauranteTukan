@@ -393,7 +393,7 @@ app.get('/cuenta/:mesa', async (req, res) => {
 
 app.delete('/api/mesas/:numero', async (req, res) => {
     try {
-        const numero = parseInt(req.params.numero);
+        const numero = req.params.numero;
         
         const ocupada = await db.get('SELECT 1 FROM pedidos_activos WHERE mesa = ? OR mesa = ? LIMIT 1', [numero, numero.toString()]);
         

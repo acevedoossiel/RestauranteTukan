@@ -194,13 +194,22 @@
                 const ocupadasFisicas = activas.filter(m => !m.toString().startsWith('L-'));
                 const foliosLlevar = activas.filter(m => m.toString().startsWith('L-'));
 
+                // document.getElementById('contenedor-mesas').innerHTML = mesas.map(m => {
+                //     const esOcupada = ocupadasFisicas.includes(m.toString());
+                //     return `
+                //         <button onclick="irAMenu('${m}')"
+                //             class="h-24 rounded-2xl text-lg font-black shadow-md border-b-4 transition-all active:scale-95 bg-white/80 backdrop-blur-sm
+                //             ${esOcupada ? 'border-orange-500 text-orange-600 shadow-orange-500/5' : 'border-emerald-700 text-emerald-800 shadow-emerald-800/5'}">
+                //             MESA ${m}
+                //         </button>`;
+                // }).join('');
                 document.getElementById('contenedor-mesas').innerHTML = mesas.map(m => {
                     const esOcupada = ocupadasFisicas.includes(m.toString());
                     return `
                         <button onclick="irAMenu('${m}')"
                             class="h-24 rounded-2xl text-lg font-black shadow-md border-b-4 transition-all active:scale-95 bg-white/80 backdrop-blur-sm
                             ${esOcupada ? 'border-orange-500 text-orange-600 shadow-orange-500/5' : 'border-emerald-700 text-emerald-800 shadow-emerald-800/5'}">
-                            MESA ${m}
+                            ${m}
                         </button>`;
                 }).join('');
 
@@ -224,21 +233,37 @@
 
         async function gestionarMesas() {
             const accion = prompt("1. Agregar Mesa\n2. Eliminar Mesa\nEscribe el número:");
+            // if (accion === "1") {
+            //     const n = prompt("Número de mesa:");
+            //     if (n && !isNaN(n)) {
+            //         await fetch(`${API}/api/mesas`, {
+            //             method: 'POST',
+            //             headers: { 'Content-Type': 'application/json' },
+            //             body: JSON.stringify({ numero: parseInt(n) })
+            //         });
+            //         actualizarEstadoMesas();
+            //     }
+            // } else if (accion === "2") {
+            //     const n = prompt("Número de mesa a borrar:");
+            //     if (n && !isNaN(n)) {
+            //         const numeroMesa = parseInt(n);
+            //         const res = await fetch(`${API}/api/mesas/${numeroMesa}`, { method: 'DELETE' });
             if (accion === "1") {
-                const n = prompt("Número de mesa:");
-                if (n && !isNaN(n)) {
+                const n = prompt("Introduce el identificador personalizado (Ej: SA1, P1, Patio2):");
+                if (n) {
                     await fetch(`${API}/api/mesas`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ numero: parseInt(n) })
+                        body: JSON.stringify({ numero: n.trim().toUpperCase() }) // Soporta texto libre sanitizado
                     });
                     actualizarEstadoMesas();
                 }
             } else if (accion === "2") {
-                const n = prompt("Número de mesa a borrar:");
-                if (n && !isNaN(n)) {
-                    const numeroMesa = parseInt(n);
-                    const res = await fetch(`${API}/api/mesas/${numeroMesa}`, { method: 'DELETE' });
+                const n = prompt("Identificador personalizado a borrar:");
+                if (n) {
+                    const numeroMesa = n.trim().toUpperCase();
+                    // 🔥 CORRECCIÓN: Usar encodeURIComponent limpio sin caracteres raros
+                    const res = await fetch(`${API}/api/mesas/${encodeURIComponent(numeroMesa)}`, { method: 'DELETE' });
                     if (!res.ok) {
                         const err = await res.json();
                         alert(err.error);
@@ -252,7 +277,9 @@
         async function irAMenu(n) {
             mesaSel = n.toString();
             itemsNuevos = [];
-            document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `MESA ${mesaSel}`;
+            // document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `MESA ${mesaSel}`;
+            // document.getElementById('vista-mesas').classList.add('hidden');
+            document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `${mesaSel}`;
             document.getElementById('vista-mesas').classList.add('hidden');
             document.getElementById('vista-menu').classList.remove('hidden');
 

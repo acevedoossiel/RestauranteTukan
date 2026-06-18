@@ -209,7 +209,7 @@
             zona.innerHTML = `
         <div class="ticket-impresion text-center font-mono">
             <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA BARRA ***</p>
-            <h2 class="text-xl font-black uppercase mb-1">${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</h2>
+            ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
             <p class="text-[10px] text-slate-600 mb-4">${c.fecha}</p>
             <div class="text-left border-b border-black pb-2 mb-2">${itemsHtml}</div>
             <p class="text-[9px] text-slate-400">--- SISTEMA TUKAN POS ---</p>
@@ -281,7 +281,7 @@
             <div class="bg-white/70 backdrop-blur-md border-2 ${esLlevar ? 'border-orange-500/60 shadow-orange-500/5' : 'border-slate-200/60'} p-4 rounded-3xl shadow-xl flex flex-col justify-between h-fit gap-4 transition-all w-full">
                 <div>
                     <div class="flex justify-between items-start border-b border-slate-200 pb-2 mb-3">
-                        <h3 class="text-base font-black ${esLlevar ? 'text-orange-500' : 'text-emerald-900'} uppercase">${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</h3>
+                        ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
                         <span class="text-[10px] font-mono text-slate-400 font-bold">${c.fecha}</span>
                     </div>
                     <div class="space-y-1.5">${listaItems}</div>
@@ -393,7 +393,7 @@
                 <div class="bg-white/80 border border-slate-200 p-3 rounded-xl flex flex-col justify-between gap-2 shadow-sm">
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="font-black uppercase ${esLlevar ? 'text-orange-500' : 'text-emerald-900'} text-sm">${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}</span>
+                            ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
                             <span class="text-[9px] text-slate-400 block font-mono font-bold">Creación: ${c.fecha} | Fin: ${c.fechaCierre}</span>
                         </div>
                         <button onclick="recuperarComanda('${c.id}')" class="bg-slate-900 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider text-[10px] transition-all active:scale-95">Reabrir</button>
