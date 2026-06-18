@@ -141,7 +141,7 @@ let colaRecibosImpresion = [];
 
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
-    if (user === "admin" && pass === "000408") {
+    if (user === "admin" && pass === "12141618") {
         res.json({ success: true, token: "TOKEN_" + Math.random().toString(36).substr(2) });
     } else {
         res.status(401).json({ success: false });
