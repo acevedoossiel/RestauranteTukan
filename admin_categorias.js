@@ -1,4 +1,3 @@
-// admin_categorias.js
 async function cargarDatosCategorias() {
     const API = CONFIG.API_URL;
     const resCat = await fetch(`${API}/api/categorias`);
@@ -8,7 +7,6 @@ async function cargarDatosCategorias() {
     tbody.innerHTML = '';
 
     for (const cat of categorias) {
-        // Fila de la Categoría Padre
         tbody.innerHTML += `
             <tr class="bg-gray-50">
                 <td class="p-4 font-black text-orange-600">${cat.nombre}</td>
@@ -20,7 +18,6 @@ async function cargarDatosCategorias() {
             </tr>
         `;
 
-        // Buscar subcategorías de esta categoría
         const resSub = await fetch(`${API}/api/subcategorias/${cat.id}`);
         const subs = await resSub.json();
         

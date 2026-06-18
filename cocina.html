@@ -73,25 +73,6 @@
         let idsComandasProcesadas = new Set();
         let checkboxesMarcadosCocina = new Set();
 
-        // function cambiarModoTrabajo(modo) {
-        //     modoOperacion = modo;
-        //     localStorage.setItem('modo_cocina', modo);
-
-        //     const bPrint = document.getElementById('btn-modo-print');
-        //     const bTablet = document.getElementById('btn-modo-tablet');
-        //     const contVisual = document.getElementById('contenedor-comandas-visuales');
-
-        //     if (modo === 'impresora') {
-        //         bPrint.className = "bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-orange-500/20 transition-all";
-        //         bTablet.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
-        //         contVisual.classList.add('opacity-40');
-        //     } else {
-        //         bTablet.className = "bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase shadow-md shadow-emerald-800/20 transition-all";
-        //         bPrint.className = "text-slate-500 hover:text-emerald-900 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all";
-        //         contVisual.classList.remove('opacity-40');
-        //     }
-        // }
-
         function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
             localStorage.setItem('modo_cocina', modo);
@@ -106,24 +87,6 @@
             }
         }
 
-        // async function consultarComandas() {
-        //     try {
-        //         const res = await fetch(`${API}/api/comandas/cocina`);
-        //         const comandas = await res.json();
-
-        //         if (modoOperacion === 'impresora' && comandas.length > 0) {
-        //             for (let c of comandas) {
-        //                 if (!idsComandasProcesadas.has(c.id)) {
-        //                     idsComandasProcesadas.add(c.id);
-        //                     ejecutarImpresionTermica(c);
-        //                 }
-        //             }
-        //         }
-
-        //         renderizarPantallaTablet(comandas);
-
-        //     } catch (e) { console.error(e); }
-        // }
         async function consultarComandas() {
             try {
                 const resModo = await fetch(`${API}/api/sistema/modos_pantalla`);
@@ -269,15 +232,6 @@
             }
         }
 
-        // async function marcarCompletada(id) {
-        //     await fetch(`${API}/api/comandas/completar`, {
-        //         method: 'POST',
-        //         headers: { 'Content-Type': 'application/json' },
-        //         body: JSON.stringify({ id: id, destino: 'cocina' })
-        //     });
-        //     consultarComandas();
-        //     if (!document.getElementById('panel-historial').classList.contains('hidden')) cargarHistorial();
-        // }
         async function marcarCompletada(id) {
             await fetch(`${API}/api/comandas/completar`, {
                 method: 'POST',
@@ -294,45 +248,6 @@
             if (!panel.classList.contains('hidden')) cargarHistorial();
         }
 
-        // async function cargarHistorial() {
-        //     try {
-        //         const res = await fetch(`${API}/api/comandas/historial`);
-        //         const datos = await res.json();
-        //         const deCocina = datos.filter(c => c.destinoCierre === 'cocina').reverse().slice(0, 9);
-
-        //         const cont = document.getElementById('lista-historial-recuperacion');
-        //         if (deCocina.length === 0) {
-        //             cont.innerHTML = '<p class="col-span-full text-zinc-500 font-bold italic">No hay comandas despachadas en esta sesión.</p>';
-        //             return;
-        //         }
-
-        //         cont.innerHTML = deCocina.map(c => {
-        //             const resumenProductos = c.items.map(i => i.producto).join(', ');
-        //             const esLlevar = c.mesa.startsWith('L-');
-
-        //             return `
-        //         <div class="bg-zinc-900 border border-zinc-700/60 p-3 rounded-xl flex flex-col justify-between gap-2 shadow-inner">
-        //             <div class="flex justify-between items-start">
-        //                 <div>
-        //                     <span class="font-black uppercase ${esLlevar ? 'text-orange-400' : 'text-amber-500'} text-sm">
-        //                         ${esLlevar ? '🥡 ' + c.mesa : 'MESA ' + c.mesa}
-        //                     </span>
-        //                     <span class="text-[9px] text-zinc-500 block font-mono font-bold">Archivado: ${c.fechaCierre.split(' ')[1] || c.fechaCierre}</span>
-        //                 </div>
-        //                 <button onclick="recuperarComanda('${c.id}')" class="bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-amber-500 border border-zinc-700 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider text-[10px] transition-all active:scale-95">
-        //                     Reabrir
-        //                 </button>
-        //             </div>
-        //             <div class="text-[10px] text-zinc-400 font-medium line-clamp-2 border-t border-zinc-800/60 pt-1.5 uppercase font-mono tracking-wide">
-        //                 📦 ${resumenProductos}
-        //             </div>
-        //         </div>
-        //     `;
-        //         }).join('');
-        //     } catch (e) {
-        //         console.error("Error cargando historial de cocina:", e);
-        //     }
-        // }
         async function cargarHistorial() {
             try {
                 const res = await fetch(`${API}/api/comandas_sistema/historial`);
@@ -374,52 +289,6 @@
                 cont.innerHTML = htmlHistorial;
             } catch (e) { console.error(e); }
         }
-        //si lees esto: HOLI :D
-        // async function recuperarComanda(id) {
-        //     try {
-        //         const res = await fetch(`${API}/api/comandas/historial`);
-        //         const datos = await res.json();
-        //         const encontrada = datos.find(c => c.id === id);
-
-        //         if (encontrada) {
-        //             // Formateamos manteniendo la estructura exacta de modificadores nativos
-        //             const itemsFormateados = encontrada.items.map(i => ({
-        //                 display: i.producto,
-        //                 base: i.producto,
-        //                 modificadores: i.modificadores || [],
-        //                 nota: i.nota || ""
-        //             }));
-
-        //             const respuestaReabrir = await fetch(`${API}/api/comandas/reabrir`, {
-        //                 method: 'POST',
-        //                 headers: { 'Content-Type': 'application/json' },
-        //                 body: JSON.stringify({
-        //                     mesa: encontrada.mesa,
-        //                     items: itemsFormateados,
-        //                     destinoOrigen: 'cocina'
-        //                 })
-        //             });
-
-        //             if (respuestaReabrir.ok) {
-        //                 // Al reabrir con éxito, removemos la comanda vieja del historial en memoria local 
-        //                 // para que desaparezca de este panel de recuperación inmediatamente
-        //                 const resHistorial = await fetch(`${API}/api/comandas/historial`);
-        //                 const historialCompleto = await resHistorial.json();
-        //                 const indexHistorial = historialCompleto.findIndex(h => h.id === id);
-        //                 if (indexHistorial > -1) {
-        //                     historialCompleto.splice(indexHistorial, 1);
-        //                 }
-
-        //                 alert("Comanda regresada al monitor de Cocina sin alterar la cuenta.");
-        //                 location.reload();
-        //             } else {
-        //                 alert("Error al procesar la reapertura en el servidor.");
-        //             }
-        //         }
-        //     } catch (err) {
-        //         console.error("Error en flujo de recuperación cocina:", err);
-        //     }
-        // }
 
         async function recuperarComanda(id) {
             if (confirm("¿Quieres regresar esta comanda al monitor activo? Conservará su hora original de creación.")) {

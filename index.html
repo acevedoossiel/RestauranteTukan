@@ -54,12 +54,9 @@
 
         <div
             class="bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-2xl border-t-4 border-orange-500 sticky bottom-4">
-            <!-- <h3 class="text-[10px] font-black text-slate-400 Pall uppercase mb-2 tracking-widest italic">Resumen del
-                pedido:</h3> -->
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-[10px] font-black text-slate-400 Pall uppercase tracking-widest italic">Resumen del
                     pedido:</h3>
-                <!-- Botón para abrir el panel de edición/cancelación controlada -->
                 <button onclick="abrirModalEdicionResumen()"
                     class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition active:scale-95 shadow-sm">
                     🛠️ Editar Resumen
@@ -149,7 +146,6 @@
         </div>
     </div>
 
-    <!-- --- NUEVO MODAL: EDICIÓN ENLISTADA PARA CANCELACIONES --- -->
     <div id="modal-edicion-resumen"
         class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div
@@ -160,10 +156,8 @@
                     eliminación controlada</p>
             </div>
 
-            <!-- Contenedor con scroll propio para enlistar los productos uno por uno -->
             <div class="flex-1 overflow-y-auto no-scrollbar pr-1 mb-6">
                 <ul id="lista-desglosada-edicion" class="text-sm font-bold text-slate-800 space-y-2">
-                    <!-- Se llena dinámicamente con JavaScript -->
                 </ul>
             </div>
 
@@ -194,15 +188,6 @@
                 const ocupadasFisicas = activas.filter(m => !m.toString().startsWith('L-'));
                 const foliosLlevar = activas.filter(m => m.toString().startsWith('L-'));
 
-                // document.getElementById('contenedor-mesas').innerHTML = mesas.map(m => {
-                //     const esOcupada = ocupadasFisicas.includes(m.toString());
-                //     return `
-                //         <button onclick="irAMenu('${m}')"
-                //             class="h-24 rounded-2xl text-lg font-black shadow-md border-b-4 transition-all active:scale-95 bg-white/80 backdrop-blur-sm
-                //             ${esOcupada ? 'border-orange-500 text-orange-600 shadow-orange-500/5' : 'border-emerald-700 text-emerald-800 shadow-emerald-800/5'}">
-                //             MESA ${m}
-                //         </button>`;
-                // }).join('');
                 document.getElementById('contenedor-mesas').innerHTML = mesas.map(m => {
                     const esOcupada = ocupadasFisicas.includes(m.toString());
                     return `
@@ -233,28 +218,13 @@
 
         async function gestionarMesas() {
             const accion = prompt("1. Agregar Mesa\n2. Eliminar Mesa\nEscribe el número:");
-            // if (accion === "1") {
-            //     const n = prompt("Número de mesa:");
-            //     if (n && !isNaN(n)) {
-            //         await fetch(`${API}/api/mesas`, {
-            //             method: 'POST',
-            //             headers: { 'Content-Type': 'application/json' },
-            //             body: JSON.stringify({ numero: parseInt(n) })
-            //         });
-            //         actualizarEstadoMesas();
-            //     }
-            // } else if (accion === "2") {
-            //     const n = prompt("Número de mesa a borrar:");
-            //     if (n && !isNaN(n)) {
-            //         const numeroMesa = parseInt(n);
-            //         const res = await fetch(`${API}/api/mesas/${numeroMesa}`, { method: 'DELETE' });
             if (accion === "1") {
                 const n = prompt("Introduce el identificador personalizado (Ej: SA1, P1, Patio2):");
                 if (n) {
                     await fetch(`${API}/api/mesas`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ numero: n.trim().toUpperCase() }) // Soporta texto libre sanitizado
+                        body: JSON.stringify({ numero: n.trim().toUpperCase() })
                     });
                     actualizarEstadoMesas();
                 }
@@ -262,7 +232,6 @@
                 const n = prompt("Identificador personalizado a borrar:");
                 if (n) {
                     const numeroMesa = n.trim().toUpperCase();
-                    // 🔥 CORRECCIÓN: Usar encodeURIComponent limpio sin caracteres raros
                     const res = await fetch(`${API}/api/mesas/${encodeURIComponent(numeroMesa)}`, { method: 'DELETE' });
                     if (!res.ok) {
                         const err = await res.json();
@@ -277,8 +246,6 @@
         async function irAMenu(n) {
             mesaSel = n.toString();
             itemsNuevos = [];
-            // document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `MESA ${mesaSel}`;
-            // document.getElementById('vista-mesas').classList.add('hidden');
             document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `${mesaSel}`;
             document.getElementById('vista-mesas').classList.add('hidden');
             document.getElementById('vista-menu').classList.remove('hidden');
@@ -301,7 +268,6 @@
 
             categorias.forEach(c => {
                 const btn = document.createElement('button');
-                // ADAPTADO: Botones de categorías en Verde Esmeralda
                 btn.className = "bg-emerald-800 hover:bg-emerald-900 text-white p-5 rounded-2xl font-black uppercase shadow-md shadow-emerald-800/10 text-xs active:scale-95 transition-all";
                 btn.innerText = c.nombre;
                 btn.onclick = () => { mostrarSubOProductos(c.id, c.nombre); };
@@ -319,7 +285,6 @@
 
                 subcategorias.forEach(s => {
                     const btn = document.createElement('button');
-                    // ADAPTADO: Botones de subcategorías en Naranja Corporativo
                     btn.className = "bg-orange-500 hover:bg-orange-600 text-white p-5 rounded-2xl font-black uppercase shadow-md shadow-orange-500/10 text-xs active:scale-95 transition-all";
                     btn.innerText = s.nombre;
                     btn.onclick = () => mostrarProductosDeSub(s.id, catId, s.nombre);
@@ -327,7 +292,6 @@
                 });
                 productosDirectos.forEach(p => {
                     const btn = document.createElement('button');
-                    // ADAPTADO: Botones finales de platillos en blanco cristal limpio con precio
                     btn.className = "bg-white border border-slate-200 text-slate-800 p-5 rounded-2xl font-black uppercase shadow-sm text-xs active:scale-95 transition-all";
                     btn.innerHTML = `${p.nombre}<br><span class="text-[10px] text-emerald-700 font-mono font-black">$${p.precio}</span>`;
                     btn.onclick = () => lanzarPersonalizador(p);
@@ -344,38 +308,12 @@
             const filtrados = menuGlobal.filter(p => Number(p.subcategoria_id) === Number(subId));
             filtrados.forEach(p => {
                 const btn = document.createElement('button');
-                // ADAPTADO: Botones finales de platillos en blanco cristal limpio con precio
                 btn.className = "bg-white border border-slate-200 text-slate-800 p-5 rounded-2xl font-black uppercase shadow-sm text-xs active:scale-95 transition-all";
                 btn.innerHTML = `${p.nombre}<br><span class="text-[10px] text-emerald-700 font-mono font-black">$${p.precio}</span>`;
                 btn.onclick = () => lanzarPersonalizador(p);
                 g.appendChild(btn);
             });
         }
-
-        // function lanzarPersonalizador(producto) {
-        //     productoEnPersonalizacion = producto;
-
-        //     if (!producto.modificadores || producto.modificadores.length === 0) {
-        //         confirmarAgregadoDirecto();
-        //     } else {
-        //         document.getElementById('mod-producto-titulo').innerText = producto.nombre;
-        //         document.getElementById('mod-nota-libre').value = "";
-
-        //         const contChecks = document.getElementById('contenedor-mods-checks');
-        //         contChecks.innerHTML = producto.modificadores.map((m, index) => `
-        //     <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
-        //         <div class="flex items-center gap-2">
-        //             <input type="checkbox" name="mod-check" value="${index}" class="w-4 h-4 text-emerald-800 rounded focus:ring-0">
-        //             <span class="text-xs font-bold text-slate-700">${m.nombre}</span>
-        //         </div>
-        //         <span class="text-xs font-mono font-black ${m.precio_extra >= 0 ? 'text-green-600' : 'text-red-500'}">
-        //             ${m.precio_extra > 0 ? '+$' + m.precio_extra : m.precio_extra < 0 ? '-$' + Math.abs(m.precio_extra) : '$0.00'}
-        //         </span>
-        //     </label>
-        // `).join('');
-        //         document.getElementById('modal-modificadores').classList.remove('hidden');
-        //     }
-        // }
 
        function lanzarPersonalizador(producto) {
             productoEnPersonalizacion = producto;
@@ -385,7 +323,6 @@
 
             const contChecks = document.getElementById('contenedor-mods-checks');
             
-            // Si tiene modificadores los mapea, si no, deja el espacio vacío limpiamente
             if (producto.modificadores && producto.modificadores.length > 0) {
                 contChecks.innerHTML = producto.modificadores.map((m, index) => `
                     <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
@@ -408,26 +345,6 @@
             
             document.getElementById('modal-modificadores').classList.remove('hidden');
         } 
-
-        // function confirmarAgregadoDirecto() {
-        //     const existe = itemsNuevos.find(i =>
-        //         i.nombre === productoEnPersonalizacion.nombre &&
-        //         i.modificadores.length === 0 &&
-        //         i.nota === ""
-        //     );
-
-        //     if (existe) {
-        //         existe.cant++;
-        //     } else {
-        //         itemsNuevos.push({
-        //             nombre: productoEnPersonalizacion.nombre,
-        //             modificadores: [],
-        //             nota: "",
-        //             cant: 1
-        //         });
-        //     }
-        //     actualizarResumen();
-        // }
 
 
         function cerrarModalModificadores() { document.getElementById('modal-modificadores').classList.add('hidden'); productoEnPersonalizacion = null; }
@@ -478,79 +395,7 @@
             actualizarResumen();
         }
 
-        // function actualizarResumen() {
-        //     let html = itemsNuevos.map((i, index) => {
-        //         let sublinea = i.modificadores.map(m => m.nombre).join(', ');
-        //         if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
-        //         return `
-        //     <li class="bg-orange-50 p-2 rounded-lg border border-orange-100 flex flex-col shadow-sm">
-        //         <div class="flex justify-between items-center">
-        //             <span class="text-slate-800 font-black">${i.nombre}</span>
-        //             <div class="flex items-center gap-2">
-        //                 <button onclick="cambiarCantNuevo(${index}, -1)" class="w-6 h-6 bg-white rounded-full shadow text-red-500 font-black flex items-center justify-center border border-red-100 text-xs active:scale-90">-</button>
-        //                 <span class="text-orange-600 text-xs font-black px-1">x${i.cant}</span>
-        //                 <button onclick="cambiarCantNuevo(${index}, 1)" class="w-6 h-6 bg-white rounded-full shadow text-green-600 font-black flex items-center justify-center border border-green-100 text-xs active:scale-90">+</button>
-        //             </div>
-        //         </div>
-        //         ${sublinea ? `<div class="text-[10px] text-orange-600/80 font-black ml-1 mt-0.5">↳ ${sublinea}</div>` : ''}
-        //     </li>`;
-        //     }).join('');
-
-        //     const dbAgrupados = {};
-
-        //     itemsEnDB.forEach(item => {
-        //         const llaveUnica = `${item.producto}|${item.modificadores || '[]'}|${item.nota || ''}`;
-
-        //         if (dbAgrupados[llaveUnica]) {
-        //             dbAgrupados[llaveUnica].cantidad++;
-        //         } else {
-        //             dbAgrupados[llaveUnica] = {
-        //                 producto: item.producto,
-        //                 modificadores: item.modificadores,
-        //                 nota: item.nota,
-        //                 cantidad: 1
-        //             };
-        //         }
-        //     });
-
-        //     // html += Object.values(dbAgrupados).map(item => {
-        //     //     const mods = JSON.parse(item.modificadores || '[]');
-        //     //     let sublinea = mods.map(m => m.nombre).join(', ');
-        //     //     if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
-        //     //     return `
-        //     // <li class="text-slate-400 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100">
-        //     //     <div class="flex justify-between">
-        //     //         <span>• x${item.cantidad} ${item.producto} <small>(en proceso)</small></span>
-        //     //     </div>
-        //     //     ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
-        //     // </li>`;
-        //     // }).join('');
-
-        //     html += itemsEnDB.map(item => {
-        //         const mods = JSON.parse(item.modificadores || '[]');
-        //         let sublinea = mods.map(m => m.nombre).join(', ');
-        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
-
-        //         // Escapamos los caracteres para poder enviarlos limpiamente por parámetro en la función js
-        //         const itemSeguro = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-        //         return `
-        //             <li class="text-slate-400 italic bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
-        //                 <div>
-        //                     <div class="font-medium">• 1x ${item.producto} <small class="text-emerald-700/60 font-bold font-sans">(en proceso)</small></div>
-        //                     ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
-        //                 </div>
-        //                 <button onclick="solicitarCancelacionItem('${itemSeguro}')" class="text-red-400 hover:text-red-600 p-2 text-xs font-black uppercase tracking-wider transition active:scale-90">
-        //                     🗑️
-        //                 </button>
-        //             </li>`;
-        //     }).join('');
-
-        //     document.getElementById('lista-orden').innerHTML = html || '<p class="text-center text-slate-300 py-2">Sin productos pendientes</p>';
-        // }
-
         function actualizarResumen() {
-            // 1. Render de los ítems nuevos pendientes por enviar (se mantienen igual con sus botones + y -)
             let html = itemsNuevos.map((i, index) => {
                 let sublinea = i.modificadores.map(m => m.nombre).join(', ');
                 if (i.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${i.nota}`;
@@ -568,7 +413,6 @@
             </li>`;
             }).join('');
 
-            // 2. Agrupación inteligente de lo que ya está en la Base de Datos para limpiar la vista principal
             const dbAgrupados = {};
 
             itemsEnDB.forEach(item => {
@@ -586,7 +430,6 @@
                 }
             });
 
-            // --- ENFOQUE REACTIVADO: Mostramos todo agrupado limpiamente (Ej: x3 Hamburguesa) ---
             html += Object.values(dbAgrupados).map(item => {
                 const mods = JSON.parse(item.modificadores || '[]');
                 let sublinea = mods.map(m => m.nombre).join(', ');
@@ -710,50 +553,6 @@
             }).join('');
         }
 
-        // function avanzarPasoPersona(esUltimo) {
-        //     const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
-        //     if (checks.length === 0) return alert(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
-
-        //     const idsSeleccionados = Array.from(checks).map(c => parseInt(c.value));
-        //     const itemsPersona = itemsDisponiblesFlujo.filter(item => idsSeleccionados.includes(item.id));
-
-        //     let totalPersona = 0;
-        //     itemsPersona.forEach(item => {
-        //         let precioItem = item.precio || 0;
-        //         const mods = JSON.parse(item.modificadores || '[]');
-        //         mods.forEach(m => precioItem += (m.precio_extra || 0));
-        //         totalPersona += precioItem;
-        //     });
-
-        //     subcuentasCalculadas.push({
-        //         persona: personaActualFlujo,
-        //         items: itemsPersona,
-        //         total: totalPersona
-        //     });
-
-        //     itemsDisponiblesFlujo = itemsDisponiblesFlujo.filter(item => !idsSeleccionados.includes(item.id));
-
-        //     if (!esUltimo) {
-        //         personaActualFlujo++;
-        //         iniciarPasoPersona();
-        //     } else {
-        //         if (itemsDisponiblesFlujo.length > 0) {
-        //             alert(`¡Atención! Quedaron ${itemsDisponiblesFlujo.length} productos sin asignar a ninguna cuenta. Se sumarán a la última persona de forma automática.`);
-        //             let extraTotal = 0;
-        //             itemsDisponiblesFlujo.forEach(item => {
-        //                 let precioItem = item.precio || 0;
-        //                 const mods = JSON.parse(item.modificadores || '[]');
-        //                 mods.forEach(m => precioItem += (m.precio_extra || 0));
-        //                 extraTotal += precioItem;
-        //                 subcuentasCalculadas[subcuentasCalculadas.length - 1].items.push(item);
-        //             });
-        //             subcuentasCalculadas[subcuentasCalculadas.length - 1].total += extraTotal;
-        //         }
-
-        //         mostrarConfirmacionCuentasSeparadas();
-        //     }
-        // }
-
         function avanzarPasoPersona(esUltimo) {
             const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
             if (checks.length === 0) return alert(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
@@ -763,7 +562,6 @@
 
             let totalPersona = 0;
             itemsPersona.forEach(item => {
-                // CORRECCIÓN CLAVE: Buscamos el precio base real en el menú global usando el itemBase
                 const prodMenu = menuGlobal.find(p => p.nombre === item.itemBase);
                 let precioBase = prodMenu ? prodMenu.precio : 0;
                 
@@ -789,7 +587,6 @@
                     alert(`¡Atención! Quedaron ${itemsDisponiblesFlujo.length} productos sin asignar a ninguna cuenta. Se sumarán a la última persona de forma automática.`);
                     let extraTotal = 0;
                     itemsDisponiblesFlujo.forEach(item => {
-                        // CORRECCIÓN CLAVE: Buscamos el precio base real también para los elementos huérfanos restantes
                         const prodMenu = menuGlobal.find(p => p.nombre === item.itemBase);
                         let precioBase = prodMenu ? prodMenu.precio : 0;
 
@@ -904,19 +701,15 @@
         }
 
         async function solicitarCancelacionItem(itemJson) {
-            // Restauramos el objeto transformado desde la cadena HTML
             const item = JSON.parse(itemJson.replace(/&quot;/g, '"'));
 
-            // 1. El gerente/admin valida visualmente en cocina si ya se empezó a cocinar
             const confirmarProduccion = confirm(`⚠️ CONTROL DE SEGURIDAD:\n¿Ya verificaste en Cocina/Barra que el producto "${item.producto.toUpperCase()}" NO se esté preparando actualmente?`);
             if (!confirmarProduccion) return;
 
-            // 2. Solicitamos el PIN de autorización jerárquico
             const pinIngresado = prompt("Introduce el PIN de Gerencia para autorizar la eliminación:");
             if (!pinIngresado) return;
 
             try {
-                // 3. Validamos el PIN contra la base de datos
                 const resPin = await fetch(`${API}/api/sistema/verificar_pin`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -928,7 +721,6 @@
                     return alert("❌ PIN incorrecto. Operación rechazada.");
                 }
 
-                // 4. Si el PIN es válido, ejecutamos la eliminación síncrona
                 const resCancelacion = await fetch(`${API}/api/pedidos/cancelar_item`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -944,14 +736,11 @@
                 if (resCancelacion.ok) {
                     alert(`✅ "${item.producto.toUpperCase()}" eliminado exitosamente de la cuenta y pantallas de producción.`);
 
-                    // 1. PRIMERO: Vamos al servidor a traer la cuenta fresca actualizada de la mesa
                     const resCuenta = await fetch(`${API}/cuenta/${mesaSel}`);
                     itemsEnDB = await resCuenta.json();
 
-                    // 2. SEGUNDO: Renderizamos el resumen del fondo agrupado (x2, x4, etc.)
                     actualizarResumen();
 
-                    // 3. TERCERO: Ahora sí, repintamos la lista desglosada del modal con los datos reales
                     abrirModalEdicionResumen();
                 } else {
                     alert("Error al intentar remover el artículo del servidor.");
@@ -962,70 +751,6 @@
             }
         }
 
-        // function abrirModalEdicionResumen() {
-        //     const contenedorLista = document.getElementById('lista-desglosada-edicion');
-
-        //     if (itemsEnDB.length === 0) {
-        //         alert("Esta mesa no tiene consumos enviados por modificar.");
-        //         return;
-        //     }
-
-        //     // Generamos la lista desglosada detallada únicamente dentro del modal de seguridad
-        //     contenedorLista.innerHTML = itemsEnDB.map(item => {
-        //         const mods = JSON.parse(item.modificadores || '[]');
-        //         let sublinea = mods.map(m => m.nombre).join(', ');
-        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
-
-        //         const itemSeguro = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-        //         return `
-        //     <li class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex justify-between items-center shadow-sm">
-        //         <div>
-        //             <div class="font-black text-xs uppercase text-slate-800">• 1x ${item.producto}</div>
-        //             ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
-        //         </div>
-        //         <!-- Botón de cancelación controlado por PIN -->
-        //         <button onclick="solicitarCancelacionItem('${itemSeguro}')" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
-        //             🗑️
-        //         </button>
-        //     </li>`;
-        //     }).join('');
-
-        //     document.getElementById('modal-edicion-resumen').classList.remove('hidden');
-        // }
-
-        // function abrirModalEdicionResumen() {
-        //     const contenedorLista = document.getElementById('lista-desglosada-edicion');
-
-        //     if (itemsEnDB.length === 0) {
-        //         alert("Esta mesa no tiene consumos enviados por modificar.");
-        //         return;
-        //     }
-
-        //     // Generamos la lista desglosada detallada únicamente dentro del modal de seguridad
-        //     contenedorLista.innerHTML = itemsEnDB.map(item => {
-        //         const mods = JSON.parse(item.modificadores || '[]');
-        //         let sublinea = mods.map(m => m.nombre).join(', ');
-        //         if (item.nota) sublinea += (sublinea ? ' | ' : '') + `Nota: ${item.nota}`;
-
-        //         // CORRECCIÓN CLAVE: Convertimos el objeto a un string JSON sanitizado para HTML
-        //         const itemSeguro = JSON.stringify(item).replace(/"/g, '&quot;');
-
-        //         return `
-        //     <li class="text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 flex justify-between items-center shadow-sm">
-        //         <div>
-        //             <div class="font-black text-xs uppercase text-slate-800">• 1x ${item.producto}</div>
-        //             ${sublinea ? `<div class="text-[10px] text-slate-400 font-bold ml-3 mt-0.5">↳ ${sublinea}</div>` : ''}
-        //         </div>
-        //         <!-- QUITAMOS LAS COMILLAS SIMPLES DE LA FUNCIÓN: Pasamos el JSON sanitizado directo -->
-        //         <button onclick="solicitarCancelacionItem(${itemSeguro})" class="text-red-500 hover:text-red-700 p-2 text-sm transition active:scale-90">
-        //             🗑️
-        //         </button>
-        //     </li>`;
-        //     }).join('');
-
-        //     document.getElementById('modal-edicion-resumen').classList.remove('hidden');
-        // }
         function abrirModalEdicionResumen() {
             const contenedorLista = document.getElementById('lista-desglosada-edicion');
 
@@ -1034,7 +759,6 @@
                 return;
             }
 
-            // Generamos la lista desglosada pasando únicamente el índice 'idx'
             contenedorLista.innerHTML = itemsEnDB.map((item, idx) => {
                 const mods = JSON.parse(item.modificadores || '[]');
                 let sublinea = mods.map(m => m.nombre).join(', ');
@@ -1056,11 +780,9 @@
         }
 
         function solicitarCancelacionItemDirecto(index) {
-            // Recuperamos el objeto nativo 100% limpio desde el array en memoria RAM
             const item = itemsEnDB[index];
             if (!item) return;
 
-            // Ejecutamos tu flujo original de confirmación y PIN pasando el objeto impecable
             solicitarCancelacionItem(JSON.stringify(item));
         }
 
