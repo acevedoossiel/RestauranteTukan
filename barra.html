@@ -104,7 +104,7 @@
                 <div class="ticket-impresion text-center font-mono text-black" style="color: black !important;">
                     <p class="text-xs font-black border-b border-black pb-1 mb-2">*** BAR EL TUKAN ***</p>
                     <p class="text-xs font-black border-b border-black pb-1 mb-2">Insurgentes número 16, Tamazulapam Oax</p>
-                    <p class="text-xs font-black border-b border-black pb-1 mb-2">953 212 4618</p>
+                    <p class="text-xs font-black border-b border-black pb-1 mb-2">Tel. 953 212 4618</p>
                     <div class="text-left border-b border-black pb-2 mb-2 font-black text-xs uppercase leading-relaxed">${recibo.html}</div>
                 </div>
             `;
@@ -170,9 +170,8 @@
         <div class="ticket-impresion text-center font-mono">
             <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA BARRA ***</p>
             ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
-            <p class="text-[10px] text-slate-600 mb-4">${c.fecha}</p>
-            <div class="text-left border-b border-black pb-2 mb-2">${itemsHtml}</div>
-            <p class="text-[9px] text-slate-400">--- SISTEMA TUKAN POS ---</p>
+            <p class="text-xs text-slate-600 mb-4">${c.fecha}</p>
+            <div class="text-left text-xs font-black border-b border-black pb-2 mb-2">${itemsHtml}</div>
         </div>
     `;
 
