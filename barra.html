@@ -14,7 +14,7 @@
         @media print {
             @page {
                 size: 80mm auto;
-                margin: 0;
+                margin: 0 !important;
             }
 
             body {
@@ -35,7 +35,7 @@
                 border: none !important;
                 background: white !important;
                 color: black !important;
-                padding: 10px !important;
+                padding: 5px 0px !important;
             }
         }
     </style>
@@ -170,8 +170,8 @@
         <div class="ticket-impresion text-center font-mono">
             <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA BARRA ***</p>
             ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
-            <p class="text-xs text-slate-600 mb-4">${c.fecha}</p>
-            <div class="text-left text-xs font-black border-b border-black pb-2 mb-2">${itemsHtml}</div>
+            <p class="text-xs font-black text-black mb-4">${c.fecha}</p>
+            <div class="text-left text-xs font-black text-black border-b border-black pb-2 mb-2">${itemsHtml}</div>
         </div>
     `;
 
