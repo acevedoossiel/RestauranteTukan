@@ -80,11 +80,6 @@
             const contVisual = document.getElementById('contenedor-comandas-visuales');
             if (!contVisual) return;
 
-            if (modo === 'impresora') {
-                contVisual.classList.add('opacity-40');
-            } else {
-                contVisual.classList.remove('opacity-40');
-            }
         }
 
         async function consultarComandas() {
