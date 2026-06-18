@@ -163,7 +163,7 @@
                 let subtext = i.modificadores.map(m => `  + ${m.nombre}`).join('<br>');
                 if (i.nota) subtext += (subtext ? '<br>' : '') + `  * NOTA: ${i.nota}`;
                 return `<div class="font-black text-sm uppercase">x${i.cantidad} ${i.producto}</div>
-                ${subtext ? `<div class="text-xs font-mono text-slate-700 ml-4 mb-1">${subtext}</div>` : ''}`;
+                ${subtext ? `<div class="text-xs font-mono text-black ml-4 mb-1">${subtext}</div>` : ''}`;
             }).join('<br>');
 
             zona.innerHTML = `
