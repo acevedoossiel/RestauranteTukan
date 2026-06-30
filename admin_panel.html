@@ -740,43 +740,50 @@
                 lineasOriginales.forEach(linea => {
                     if (!linea.trim()) return;
 
-                    const match = linea.match(/• (\d+)x (.*?) \(\$(.*?)\)/);
-                    if (match) {
-                        const cantidad = parseInt(match[1]);
-                        const nombreYModificadores = match[2].trim();
-                        const precioUnitario = parseFloat(match[3]);
+                const match = linea.match(/• (\d+)x (.*)/);
+                if (match) {
+                    const cantidad = parseInt(match[1]);
+                    const textoRestante = match[2].trim();
 
-                        const llaveUnica = `${nombreYModificadores}|${precioUnitario}`;
+                    const partes = textoRestante.split('($');
+                    const nombreYModificadores = partes[0].trim();
+                    
+                    const subtotalTexto = partes[1] ? partes[1].replace(')', '').trim() : '0.00';
 
-                        if (productosAgrupados[llaveUnica]) {
-                            productosAgrupados[llaveUnica].cantidad += cantidad;
-                        } else {
-                            productosAgrupados[llaveUnica] = {
-                                nombre: nombreYModificadores,
-                                precioUnitario: precioUnitario,
-                                cantidad: cantidad
-                            };
-                        }
+                    const llaveUnica = nombreYModificadores;
+
+                    if (productosAgrupados[llaveUnica]) {
+                        productosAgrupados[llaveUnica].cantidad += cantidad;
+                        productosAgrupados[llaveUnica].subtotal += parseFloat(subtotalTexto);
                     } else {
-                        const llaveTexto = linea.trim();
+                        productosAgrupados[llaveUnica] = {
+                            nombre: nombreYModificadores,
+                            cantidad: cantidad,
+                            subtotal: parseFloat(subtotalTexto)
+                        };
+                    }
+                } else {
+                    const llaveTexto = linea.trim();
+                    if (llaveTexto) {
                         if (productosAgrupados[llaveTexto]) {
                             productosAgrupados[llaveTexto].cantidad += 1;
                         } else {
                             productosAgrupados[llaveTexto] = {
                                 nombre: llaveTexto,
-                                precioUnitario: 0,
-                                cantidad: 0,
+                                cantidad: 1,
+                                subtotal: 0,
                                 esTextoPlano: true
                             };
                         }
                     }
-                });
+                }
+            });
 
                 const detalleAgrupadoHtml = Object.values(productosAgrupados).map(p => {
                     if (p.esTextoPlano) return p.nombre; 
                     
-                    const totalAgrupadoProducto = p.cantidad * p.precioUnitario;
-                    return `• ${p.cantidad}x ${p.nombre} ($${totalAgrupadoProducto.toFixed(2)})`;
+                    const textoPrecio = p.subtotal > 0 ? ` ($${p.subtotal.toFixed(2)})` : '';
+                    return `• ${p.cantidad}x ${p.nombre}${textoPrecio}`;
                 }).join('<br>');
 
                 return `
