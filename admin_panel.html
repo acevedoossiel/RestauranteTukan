@@ -89,6 +89,10 @@
                 class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all border-t border-slate-200/60 pt-6">
                 📊 Reportes
             </button>
+            <button onclick="verTab('tab-cortes', this)"
+                class="tab-btn w-full flex items-center gap-3 p-4 rounded-2xl text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition-all">
+                🏁 Historial de Cortes
+            </button>
         </nav>
 
         <div class="p-4 border-t border-slate-200/60">
@@ -342,6 +346,42 @@
                 </div>
             </div>
         </section>
+        <section id="tab-cortes" class="tab-content hidden">
+            <div class="w-full pb-20">
+                <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h2 class="text-3xl font-black text-emerald-950 tracking-tight">Cortes de Caja</h2>
+                        <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest">Cierre controlado de Jornadas Operativas Nocturnas</p>
+                    </div>
+                    <button onclick="solicitarCierreJornada()"
+                        class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-600/10 active:scale-95 transition-all">
+                        🏁 Cerrar Jornada Actual
+                    </button>
+                </header>
+
+                <div class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-100 mb-10">
+                    <div class="overflow-x-auto w-full">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider">
+                                <tr>
+                                    <th class="p-5">Corte</th>
+                                    <th class="p-5 text-center">Rango Operativo (Tickets)</th>
+                                    <th class="p-5 text-right">Venta</th>
+                                    <th class="p-5 text-right">Costo Prod.</th>
+                                    <th class="p-5 text-right">Ganancia Neta</th>
+                                    <th class="p-5 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-cortes-body" class="text-xs font-bold divide-y divide-slate-100 text-slate-700">
+                                <tr>
+                                    <td colspan="6" class="p-10 text-center text-slate-300 uppercase tracking-widest">No se han realizado cortes de caja todavía.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
 
     </main>
 
@@ -397,6 +437,38 @@
         </div>
     </div>
 
+    <div id="modal-detalle-corte" class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+        <div class="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-4xl shadow-2xl max-h-[85vh] flex flex-col border border-slate-100">
+            <div class="mb-4 flex justify-between items-start">
+                <div>
+                    <h2 id="titulo-modal-corte" class="text-2xl font-black uppercase text-emerald-950 mb-1">Detalle del Corte</h2>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">Tickets cobrados en la jornada</p>
+                    
+                    <div id="meta-modal-corte" class="text-[10px] font-mono text-slate-600 bg-slate-100/80 border border-slate-200/40 p-3 rounded-xl space-y-0.5 leading-relaxed hidden">
+                        </div>
+                </div>
+                <button onclick="document.getElementById('modal-detalle-corte').classList.add('hidden')"
+                    class="bg-slate-900 hover:bg-orange-500 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm">
+                    ❌ Cerrar
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto no-scrollbar border border-slate-100 rounded-2xl mb-4 bg-slate-50/50">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-900 text-white text-[10px] uppercase font-black sticky top-0 z-10">
+                        <tr>
+                            <th class="p-4">Hora/Mesa</th>
+                            <th class="p-4">Detalle</th>
+                            <th class="p-4 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-productos-corte" class="text-xs font-bold divide-y divide-slate-100 text-slate-700 bg-white">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('-translate-x-full');
@@ -414,6 +486,10 @@
 
             if (tabId === 'tab-reportes') {
                 cargarReportes();
+            }
+
+            if (tabId === 'tab-cortes') {
+                cargarHistorialCortes();
             }
 
             if (window.innerWidth < 1024) toggleSidebar();
@@ -915,6 +991,181 @@
             } catch(err) {
                 console.error(err);
                 alert("Fallo de conexión con el servidor.");
+            }
+        }
+
+        async function cargarHistorialCortes() {
+            try {
+                const res = await fetch(`${API}/api/sistema/historial_cortes`);
+                const cortes = await res.json();
+                
+                const tbody = document.getElementById('lista-cortes-body');
+                if (cortes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-300 uppercase tracking-widest">No se han realizado cortes de caja todavía.</td></tr>`;
+                    return;
+                }
+
+                window.cortesCargados = cortes;
+
+               tbody.innerHTML = cortes.map((c, index) => {
+                const productosDesglose = JSON.parse(c.detalle_ventas || '[]')
+                    .map(p => `• ${p.cantidad}x ${p.nombre}`)
+                    .join('\n');
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-4 font-black text-slate-900 text-sm">Corte #${c.id}<br><span class="text-[10px] font-normal text-slate-400 font-mono">${new Date(c.fecha_corte).toLocaleString('es-MX')}</span></td>
+                            <td class="p-4 text-center text-xs font-mono text-slate-600 leading-relaxed">
+                                <span class="text-emerald-700 font-bold">Inicio:</span> ${c.fecha_primer_ticket}<br>
+                                <span class="text-red-500 font-bold">Fin:</span> ${c.fecha_ultimo_ticket}
+                            </td>
+                            <td class="p-4 text-right text-green-600 font-black text-sm">$${c.ingresos.toFixed(2)}</td>
+                            <td class="p-4 text-right text-red-500 font-bold text-sm">$${c.gastos.toFixed(2)}</td>
+                            <td class="p-4 text-right text-blue-600 font-black text-sm">$${c.ganancia.toFixed(2)}</td>
+                            <td class="p-4 text-center">
+                                <button onclick="mostrarDetalleCorte(${index})"
+                                    class="bg-slate-900 hover:bg-orange-500 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm">
+                                    👁️ Ver Detalles
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function solicitarCierreJornada() {
+            if (!confirm("⚠️ ATENCIÓN: ¿Estás seguro de cerrar la jornada operativa actual?")) return;
+            
+            try {
+                const res = await fetch(`${API}/api/sistema/ejecutar_corte`, { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`✅ ¡Corte de Caja #${data.corte_id} procesado con éxito!\n\nTotal de Ingresos Archivados: $${data.total.toFixed(2)}`);
+                    cargarHistorialCortes();
+                } else {
+                    const err = await res.json();
+                    alert(`⚠️ Alerta: ${err.error || "No se pudo realizar el corte."}`);
+                }
+            } catch (err) {
+                alert("Error de comunicación con el servidor.");
+            }
+        }
+
+        async function mostrarDetalleCorte(index) {
+            try {
+                const corte = window.cortesCargados[index];
+                if (!corte) return;
+
+                document.getElementById('titulo-modal-corte').innerText = `Tickets - Corte #${corte.id}`;
+
+                const metaContenedor = document.getElementById('meta-modal-corte');
+                metaContenedor.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center w-full">
+                        <div class="space-y-0.5 border-b sm:border-b-0 sm:border-r border-slate-200 pr-0 sm:pr-4">
+                            <div><span class="text-emerald-700 font-bold">🛫 INICIO JORNADA:</span> ${corte.fecha_primer_ticket}</div>
+                            <div><span class="text-red-500 font-bold">🏁 FIN JORNADA:</span> ${corte.fecha_ultimo_ticket}</div>
+                            <div class="pt-1 text-[9px] text-slate-400 font-bold uppercase tracking-wider">💾 REGISTRO EN SISTEMA: ${new Date(corte.fecha_corte).toLocaleString('es-MX')}</div>
+                        </div>
+                        
+                        <div class="flex justify-around sm:justify-end gap-3 sm:gap-6 font-sans">
+                            <div class="text-center">
+                                <p class="text-slate-400 text-[9px] font-black uppercase tracking-wider mb-0.5">Venta</p>
+                                <p class="text-sm font-black text-green-600 font-mono">$${corte.ingresos.toFixed(2)}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-slate-400 text-[9px] font-black uppercase tracking-wider mb-0.5">Costo</p>
+                                <p class="text-sm font-black text-red-500 font-mono">$${corte.gastos.toFixed(2)}</p>
+                            </div>
+                            <div class="text-center bg-emerald-50/60 border border-emerald-100 rounded-lg px-2.5 py-1">
+                                <p class="text-emerald-800/60 text-[9px] font-black uppercase tracking-wider mb-0.5">Ganancia</p>
+                                <p class="text-sm font-black text-blue-600 font-mono">$${corte.ganancia.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                metaContenedor.classList.remove('hidden'); 
+
+                const contenedorLista = document.getElementById('lista-productos-corte');
+                contenedorLista.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-slate-400 tracking-widest uppercase">Cargando desglose de la jornada...</td></tr>`;
+
+                const res = await fetch(`${API}/api/sistema/ventas_corte/${corte.id}`);
+                const ventas = await res.json();
+
+                if (ventas.length === 0) {
+                    contenedorLista.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-slate-300 tracking-widest uppercase">No se encontraron tickets en este corte.</td></tr>`;
+                } else {
+                    contenedorLista.innerHTML = ventas.map(v => {
+                        const lineasOriginales = v.detalle.split('<br>');
+                        const productosAgrupados = {};
+
+                        lineasOriginales.forEach(linea => {
+                            if (!linea.trim()) return;
+
+                            const match = linea.match(/• (\d+)x (.*)/);
+                            if (match) {
+                                const cantidad = parseInt(match[1]);
+                                const textoRestante = match[2].trim();
+                                const partes = textoRestante.split('($');
+                                const nombreYModificadores = partes[0].trim();
+                                const subtotalTexto = partes[1] ? partes[1].replace(')', '').trim() : '0.00';
+
+                                const llaveUnica = nombreYModificadores;
+
+                                if (productosAgrupados[llaveUnica]) {
+                                    productosAgrupados[llaveUnica].cantidad += cantidad;
+                                    productosAgrupados[llaveUnica].subtotal += parseFloat(subtotalTexto);
+                                } else {
+                                    productosAgrupados[llaveUnica] = {
+                                        nombre: nombreYModificadores,
+                                        cantidad: cantidad,
+                                        subtotal: parseFloat(subtotalTexto)
+                                        };
+                                    }
+                            } else {
+                                const llaveTexto = linea.trim();
+                                if (llaveTexto) {
+                                    if (productosAgrupados[llaveTexto]) {
+                                        productosAgrupados[llaveTexto].cantidad += 1;
+                                    } else {
+                                        productosAgrupados[llaveTexto] = {
+                                            nombre: llaveTexto,
+                                            cantidad: 1,
+                                            subtotal: 0,
+                                            esTextoPlano: true
+                                        };
+                                    }
+                                }
+                            }
+                        });
+
+                        const detalleAgrupadoHtml = Object.values(productosAgrupados).map(p => {
+                            if (p.esTextoPlano) return p.nombre; 
+                            const textoPrecio = p.subtotal > 0 ? ` ($${p.subtotal.toFixed(2)})` : '';
+                            return `• ${p.cantidad}x ${p.nombre}${textoPrecio}`;
+                        }).join('<br>');
+
+                        return `
+                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                                <td class="p-4 align-top">
+                                    <div class="text-blue-600 font-black">Mesa ${v.mesa}</div>
+                                    <div class="text-[9px] text-slate-400 font-mono">
+                                        ${new Date(v.fecha + "Z").toLocaleString('es-MX', {
+                                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+                                        }).replace(',', ' |')}
+                                    </div>
+                                </td>
+                                <td class="p-4 text-slate-500 font-normal italic leading-relaxed">${detalleAgrupadoHtml}</td>
+                                <td class="p-4 text-right text-green-600 font-black text-sm align-top">$${v.total.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                document.getElementById('modal-detalle-corte').classList.remove('hidden');
+            } catch (err) {
+                console.error("Error al cargar tickets del corte:", err);
+                alert("Ocurrió un fallo al consultar el historial del corte.");
             }
         }
 

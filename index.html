@@ -185,8 +185,8 @@
                 const resActivas = await fetch(`${API}/mesas_activas`);
                 const activas = await resActivas.json();
 
-                const ocupadasFisicas = activas.filter(m => !m.toString().startsWith('L-'));
-                const foliosLlevar = activas.filter(m => m.toString().startsWith('L-'));
+                const ocupadasFisicas = activas.filter(m => !m.toString().startsWith('PARA LLEVAR'));
+                const foliosLlevar = activas.filter(m => m.toString().startsWith('PARA LLEVAR'));
 
                 document.getElementById('contenedor-mesas').innerHTML = mesas.map(m => {
                     const esOcupada = ocupadasFisicas.includes(m.toString());
@@ -203,17 +203,26 @@
                     contLlevar.innerHTML = '<p class="col-span-3 text-center text-slate-300 text-[10px] font-bold uppercase py-2">Ninguno</p>';
                 } else {
                     contLlevar.innerHTML = foliosLlevar.map(f => `
-                        <button onclick="irAMenu('${f}')" class="bg-white/80 backdrop-blur-sm border-b-4 border-orange-500 text-orange-600 p-3 rounded-xl font-black text-xs shadow-md shadow-orange-500/5 active:scale-95 transition-all">
-                            🥡 ${f}
-                        </button>
-                    `).join('');
+                    <button onclick="irAMenu('${f}')" class="bg-white/80 backdrop-blur-sm border-b-4 border-orange-500 text-orange-600 p-3 rounded-xl font-black text-xs shadow-md shadow-orange-500/5 active:scale-95 transition-all">
+                        🥡 ${f}
+                    </button>
+                `).join('');
                 }
             } catch (e) { console.error("Error de sincronización", e); }
         }
 
         async function crearPedidoLlevar() {
-            const numeroFolio = "L-" + Math.floor(10 + Math.random() * 90);
-            irAMenu(numeroFolio);
+            try {
+                const res = await fetch(`${API}/api/sistema/siguiente_llevar`);
+                const data = await res.json();
+                
+                const numeroFolio = `PARA LLEVAR #${data.numero}`;
+                irAMenu(numeroFolio);
+            } catch (err) {
+                console.error(err);
+                const respaldo = `PARA LLEVAR #FALLBACK-${Math.floor(10 + Math.random() * 89)}`;
+                irAMenu(respaldo);
+            }
         }
 
         async function gestionarMesas() {
@@ -246,11 +255,11 @@
         async function irAMenu(n) {
             mesaSel = n.toString();
             itemsNuevos = [];
-            document.getElementById('label-mesa').innerText = mesaSel.startsWith('L-') ? `🥡 PARA LLEVAR: ${mesaSel}` : `${mesaSel}`;
+            document.getElementById('label-mesa').innerText = mesaSel.startsWith('PARA LLEVAR') ? `${mesaSel}` : `MESA: ${mesaSel}`;
             document.getElementById('vista-mesas').classList.add('hidden');
             document.getElementById('vista-menu').classList.remove('hidden');
 
-            const res = await fetch(`${API}/cuenta/${mesaSel}`);
+            const res = await fetch(`${API}/cuenta/${encodeURIComponent(mesaSel)}`);
             itemsEnDB = await res.json();
             actualizarResumen();
             mostrarCategorias();

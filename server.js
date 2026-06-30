@@ -119,7 +119,23 @@ let colaRecibosImpresion = [];
             clave TEXT PRIMARY KEY,
             valor TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS cortes_caja (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fecha_corte DATETIME DEFAULT CURRENT_TIMESTAMP,
+            fecha_primer_ticket TEXT,
+            fecha_ultimo_ticket TEXT,
+            ingresos REAL DEFAULT 0,
+            gastos REAL DEFAULT 0,
+            ganancia REAL DEFAULT 0,
+            detalle_ventas TEXT
+        );   
     `);
+
+    try {
+        await db.run("ALTER TABLE historial_ventas ADD COLUMN corte_id INTEGER DEFAULT 0");
+    } catch (e) {
+    }
 
     const pinExistente = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'pin_admin'");
     if (!pinExistente) {
@@ -194,6 +210,13 @@ app.post('/enviar_comanda', async (req, res) => {
             await db.run('INSERT INTO control_comandas (id, mesa, fecha, destino, estatus) VALUES (?, ?, ?, "barra", 0)', [idBarra, mesa, horaActual]);
             for(let ib of elementosBarra) {
                 await db.run('INSERT INTO items_comanda (comanda_id, producto, modificadores, nota) VALUES (?, ?, ?, ?)', [idBarra, ib.producto, ib.modificadores, ib.nota]);
+            }
+        }
+
+        if (mesa.startsWith('PARA LLEVAR #')) {
+            const numeroActual = parseInt(mesa.split('#')[1]);
+            if (!isNaN(numeroActual)) {
+                await db.run("INSERT OR REPLACE INTO variables_sistema (clave, valor) VALUES ('consecutivo_llevar', ?)", [numeroActual.toString()]);
             }
         }
 
@@ -812,6 +835,88 @@ app.put('/api/subcategorias/:id', async (req, res) => {
         }
         await db.run('UPDATE subcategorias SET nombre = ? WHERE id = ?', [nombre.trim(), id]);
         res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/sistema/siguiente_llevar', async (req, res) => {
+    try {
+        const row = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'consecutivo_llevar'");
+        let actual = row ? parseInt(row.valor) : 0;
+        let siguiente = actual + 1;
+        res.json({ numero: siguiente });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/sistema/ejecutar_corte', async (req, res) => {
+    try {
+        const ventasJornada = await db.all('SELECT * FROM historial_ventas WHERE corte_id = 0 ORDER BY fecha ASC');
+        
+        if (ventasJornada.length === 0) {
+            return res.status(400).json({ error: "No hay ventas registradas en esta jornada para realizar un corte." });
+        }
+
+        const fechaPrimerTicket = ventasJornada[0].fecha;
+        const fechaUltimoTicket = ventasJornada[ventasJornada.length - 1].fecha;
+
+        const productosDb = await db.all('SELECT nombre, costo FROM productos');
+        const costosMap = {};
+        productosDb.forEach(p => costosMap[p.nombre] = p.costo);
+
+        let ingresos = 0, gastos = 0;
+        const resumenProd = {};
+
+        ventasJornada.forEach(v => {
+            ingresos += v.total;
+            const lineas = v.detalle.split('<br>');
+            lineas.forEach(linea => {
+                const match = linea.match(/• (\d+)x (.*)/);
+                if (match) {
+                    const cant = parseInt(match[1]);
+                    const nombre = match[2].split('($')[0].trim();
+                    resumenProd[nombre] = (resumenProd[nombre] || 0) + cant;
+                    gastos += ((costosMap[nombre] || 0) * cant);
+                }
+            });
+        });
+
+        const ganancia = ingresos - gastos;
+        const detalleVentasJson = JSON.stringify(Object.entries(resumenProd).map(([nombre, cantidad]) => ({ nombre, cantidad })));
+
+        const resultadoCorte = await db.run(`
+            INSERT INTO cortes_caja (fecha_primer_ticket, fecha_ultimo_ticket, ingresos, gastos, ganancia, detalle_ventas)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [fechaPrimerTicket, fechaUltimoTicket, ingresos, gastos, ganancia, detalleVentasJson]);
+
+        const nuevoCorteId = resultadoCorte.lastID;
+
+        await db.run('UPDATE historial_ventas SET corte_id = ? WHERE corte_id = 0', [nuevoCorteId]);
+
+        await db.run("UPDATE variables_sistema SET valor = '0' WHERE clave = 'consecutivo_llevar'");
+
+        res.json({ success: true, corte_id: nuevoCorteId, total: ingresos });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/sistema/historial_cortes', async (req, res) => {
+    try {
+        const cortes = await db.all('SELECT * FROM cortes_caja ORDER BY id DESC');
+        res.json(cortes);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/sistema/ventas_corte/:corte_id', async (req, res) => {
+    try {
+        const { corte_id } = req.params;
+        const ventas = await db.all('SELECT * FROM historial_ventas WHERE corte_id = ? ORDER BY fecha DESC', [corte_id]);
+        res.json(ventas);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

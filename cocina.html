@@ -131,11 +131,11 @@
             }).join('<br>');
 
             zona.innerHTML = `
-        <div class="ticket-impresion text-center font-mono">
+       <div class="ticket-impresion text-center font-mono">
             <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA COCINA ***</p>
-            ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
-            <p class="text-[10px] text-slate-600 mb-4">${c.fecha}</p>
-            <div class="text-left border-b border-black pb-2 mb-2">${itemsHtml}</div>
+            <p class="text-xl font-black uppercase mb-1">${c.mesa}</p>
+            <p class="text-xs font-black text-black mb-4">${new Date().toLocaleDateString('es-MX')} | ${c.fecha}</p>
+            <div class="text-left text-xs font-black text-black border-b border-black pb-2 mb-2">${itemsHtml}</div>
             <p class="text-[9px] text-slate-400">--- SISTEMA TUKAN POS ---</p>
         </div>
     `;
@@ -159,7 +159,7 @@
             }
 
             contenedor.innerHTML = comandas.map((c, idxComanda) => {
-                const esLlevar = c.mesa.startsWith('L-');
+                const esLlevar = c.mesa.startsWith('PARA LLEVAR');
 
                 const itemsAgrupados = {};
                 c.items.forEach(item => {
@@ -205,7 +205,7 @@
             <div class="bg-white/70 backdrop-blur-md border-2 ${esLlevar ? 'border-orange-500/60 shadow-orange-500/5' : 'border-slate-200/60'} p-4 rounded-3xl shadow-xl flex flex-col justify-between h-fit gap-4 transition-all w-full">
                 <div>
                     <div class="flex justify-between items-start border-b border-slate-200 pb-2 mb-3">
-                        ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
+                        <span class="font-black text-slate-800">${c.mesa}</span>
                         <span class="text-[10px] font-mono text-slate-400 font-bold">${c.fecha}</span>
                     </div>
                     <div class="space-y-1.5">${listaItems}</div>
@@ -266,12 +266,12 @@
 
                 htmlHistorial += deCocina.map(c => {
                     const resumenProductos = c.items.map(i => i.producto).join(', ');
-                    const esLlevar = c.mesa.startsWith('L-');
+                    const esLlevar = c.mesa.startsWith('PARA LLEVAR');
                     return `
                 <div class="bg-white/80 border border-slate-200 p-3 rounded-xl flex flex-col justify-between gap-2 shadow-sm">
                     <div class="flex justify-between items-start">
                         <div>
-                            ${c.mesa.startsWith('L-') ? '🥡 ' + c.mesa : c.mesa}
+                            ${c.mesa.startsWith('PARA LLEVAR') ? '🥡 ' + c.mesa : c.mesa}
                             <span class="text-[9px] text-slate-400 block font-mono font-bold">Creación: ${c.fecha} | Fin: ${c.fechaCierre}</span>
                         </div>
                         <button onclick="recuperarComanda('${c.id}')" class="bg-slate-900 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider text-[10px] transition-all active:scale-95">Reabrir</button>
