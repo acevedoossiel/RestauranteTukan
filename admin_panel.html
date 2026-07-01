@@ -351,7 +351,7 @@
                 <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
                         <h2 class="text-3xl font-black text-emerald-950 tracking-tight">Cortes de Caja</h2>
-                        <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest">Cierre controlado de Jornadas Operativas Nocturnas</p>
+                        <p class="text-emerald-800/50 text-xs font-black uppercase tracking-widest">Cierre controlado de Jornadas Operativas</p>
                     </div>
                     <button onclick="solicitarCierreJornada()"
                         class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-600/10 active:scale-95 transition-all">
@@ -1014,7 +1014,7 @@
 
                     return `
                         <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="p-4 font-black text-slate-900 text-sm">Corte #${c.id}<br><span class="text-[10px] font-normal text-slate-400 font-mono">${new Date(c.fecha_corte).toLocaleString('es-MX')}</span></td>
+                            <td class="p-4 font-black text-slate-900 text-sm">Corte #${c.id}<br><span class="text-[10px] font-normal text-slate-400 font-mono">${new Date(c.fecha_corte).toLocaleString('es-MX', {hour12: false})}</span></td>
                             <td class="p-4 text-center text-xs font-mono text-slate-600 leading-relaxed">
                                 <span class="text-emerald-700 font-bold">Inicio:</span> ${c.fecha_primer_ticket}<br>
                                 <span class="text-red-500 font-bold">Fin:</span> ${c.fecha_ultimo_ticket}
@@ -1065,7 +1065,7 @@
                         <div class="space-y-0.5 border-b sm:border-b-0 sm:border-r border-slate-200 pr-0 sm:pr-4">
                             <div><span class="text-emerald-700 font-bold">🛫 INICIO JORNADA:</span> ${corte.fecha_primer_ticket}</div>
                             <div><span class="text-red-500 font-bold">🏁 FIN JORNADA:</span> ${corte.fecha_ultimo_ticket}</div>
-                            <div class="pt-1 text-[9px] text-slate-400 font-bold uppercase tracking-wider">💾 REGISTRO EN SISTEMA: ${new Date(corte.fecha_corte).toLocaleString('es-MX')}</div>
+                            <div class="pt-1 text-[9px] text-slate-400 font-bold uppercase tracking-wider">💾 REGISTRO EN SISTEMA: ${new Date(corte.fecha_corte).toLocaleString('es-MX', {hour12: false})}</div>
                         </div>
                         
                         <div class="flex justify-around sm:justify-end gap-3 sm:gap-6 font-sans">

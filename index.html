@@ -64,13 +64,19 @@
             </div>
             <ul id="lista-orden" class="mb-4 text-sm font-bold text-slate-800 space-y-2 max-h-40 overflow-y-auto"></ul>
 
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-3 gap-2">
                 <button onclick="abrirConfirmacion()"
-                    class="bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md shadow-orange-500/10 active:scale-95 transition-all">Enviar
-                    📩</button>
+                    class="bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-[11px] uppercase shadow-md shadow-orange-500/10 active:scale-95 transition-all text-center">
+                    Enviar 📩
+                </button>
+                <button onclick="abrirModalLiberarParcial()"
+                    class="bg-slate-900 hover:bg-slate-950 text-white py-4 rounded-xl font-black text-[11px] uppercase shadow-md active:scale-95 transition-all text-center">
+                    👤 Liberar
+                </button>
                 <button onclick="abrirFlujoCobro()"
-                    class="bg-emerald-800 hover:bg-emerald-900 text-white py-4 rounded-xl font-black text-xs uppercase shadow-md shadow-emerald-800/10 active:scale-95 transition-all">Cobrar
-                    💰</button>
+                    class="bg-emerald-800 hover:bg-emerald-900 text-white py-4 rounded-xl font-black text-[11px] uppercase shadow-md shadow-emerald-800/10 active:scale-95 transition-all text-center">
+                    Cobrar 💰
+                </button>
             </div>
         </div>
     </div>
@@ -142,6 +148,33 @@
                     class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Atrás</button>
                 <button id="btn-ejecutar-cobro" onclick="procesarCobroFinal()"
                     class="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-800/10 transition-all"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-liberar-parcial"
+        class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] flex flex-col border border-slate-100 shadow-2xl">
+            <div class="mb-4">
+                <h2 class="text-xl font-black uppercase text-slate-900 mb-0.5">👤 Pago Anticipado</h2>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Mesa Activa: <span id="span-mesa-liberar" class="text-orange-500"></span></p>
+            </div>
+
+            <div class="flex-1 overflow-y-auto no-scrollbar p-1 mb-6 space-y-2">
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Selecciona únicamente los artículos que se van a pagar ahorita:</p>
+                <div id="lista-checks-liberar" class="space-y-2">
+                    </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 shrink-0">
+                <button onclick="document.getElementById('modal-liberar-parcial').classList.add('hidden')"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">
+                    Regresar
+                </button>
+                <button onclick="ejecutarLiberacionParcialFinal()"
+                    class="bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">
+                    Confirmar Pago 💳
+                </button>
             </div>
         </div>
     </div>
@@ -798,7 +831,72 @@
         function cerrarModalEdicionResumen() {
             document.getElementById('modal-edicion-resumen').classList.add('hidden');
         }
+        function abrirModalLiberarParcial() {
+            if (itemsEnDB.length === 0) return alert("Esta mesa no tiene consumos enviados todavía por liquidar.");
+            
+            document.getElementById('span-mesa-liberar').innerText = mesaSel;
+            const contLista = document.getElementById('lista-checks-liberar');
 
+            contLista.innerHTML = itemsEnDB.map(item => {
+                const mods = JSON.parse(item.modificadores || '[]');
+                let detalle = mods.map(m => m.nombre).join(', ');
+                if (item.nota) detalle += (detalle ? ' | ' : '') + item.nota;
+                
+                return `
+                    <label class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
+                        <input type="checkbox" name="check-liberar-item" value="${item.id}" class="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-0">
+                        <div class="text-xs font-bold text-slate-700">
+                            <div class="uppercase font-black text-slate-800">${item.producto}</div>
+                            ${detalle ? `<div class="text-[10px] text-slate-400 font-bold mt-0.5">↳ ${detalle}</div>` : ''}
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            document.getElementById('modal-liberar-parcial').classList.remove('hidden');
+        }
+
+        async function ejecutarLiberacionParcialFinal() {
+            const checks = document.querySelectorAll('input[name="check-liberar-item"]:checked');
+            if (checks.length === 0) return alert("Por favor, selecciona al menos un artículo para procesar el pago anticipado.");
+
+            const idsSeleccionados = Array.from(checks).map(c => parseInt(c.value));
+            const itemsACobrar = itemsEnDB.filter(item => idsSeleccionados.includes(item.id));
+
+            if (!confirm(`¿Confirmas procesar el pago individual de estos ${itemsACobrar.length} artículos? Esto imprimirá su ticket y los removerá de la mesa activa.`)) return;
+
+            try {
+                const res = await fetch(`${API}/api/cobrar_parcial`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mesa: mesaSel, itemsACobrar: itemsACobrar })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`✅ Pago parcial asentado con éxito por: $${data.total.toFixed(2)}\nEl recibo se ha enviado a la barra.`);
+                    
+                    document.getElementById('modal-liberar-parcial').classList.add('hidden');
+
+                    const resCuenta = await fetch(`${API}/cuenta/${encodeURIComponent(mesaSel)}`);
+                    itemsEnDB = await resCuenta.json();
+
+                    if (itemsEnDB.length === 0) {
+                        alert("La mesa ha quedado sin artículos pendientes y se ha liberado.");
+                        document.getElementById('vista-menu').classList.add('hidden');
+                        document.getElementById('vista-mesas').classList.remove('hidden');
+                        actualizarEstadoMesas();
+                    } else {
+                        actualizarResumen();
+                    }
+                } else {
+                    alert("No se pudo procesar el cobro individual en el servidor.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Fallo crítico de comunicación con el sistema central.");
+            }
+        }
 
 
         setInterval(async () => {

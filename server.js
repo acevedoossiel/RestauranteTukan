@@ -391,14 +391,15 @@ app.post('/api/cobrar_parcial', async (req, res) => {
 
         let lineasDetalle = Object.values(productosAgrupados).map(p => {
             let texto = `• ${p.cantidad}x ${p.producto} ($${p.subtotal.toFixed(2)})`;
-            //if (p.detalleMods) texto += ` [${p.detalleMods}]`;
             return texto;
         });
 
         const detalleTicketParcial = lineasDetalle.join("<br>");
+        const horaCobroParcialReal = new Date().toLocaleString('es-MX', { hour12: false });
         const avisoTicket = `
             *** COBRO PARCIAL ***<br>
             MESA: ${mesa}<br>
+            FECHA: ${horaCobroParcialReal}<br>
             ----------------------<br>
             ${detalleTicketParcial}<br>
             ----------------------<br>
@@ -466,16 +467,16 @@ app.post('/cerrar_cuenta', async (req, res) => {
 
         let lineasDetalle = Object.values(productosAgrupados).map(p => {
             let texto = `• ${p.cantidad}x ${p.producto} ($${p.subtotal.toFixed(2)})`;
-            //if (p.detalleMods) texto += ` [${p.detalleMods}]`;
-            //if (p.nota) texto += ` *Nota: ${p.nota}`;
             return texto;
         });
 
         const detalleTicket = lineasDetalle.join("<br>");
+        const horaCobroReal = new Date().toLocaleString('es-MX', { hour12: false });
 
         const ticketHtmlCompleto = `
             *** CUENTA TOTAL ***<br>
             MESA: ${mesa}<br>
+            FECHA: ${horaCobroReal}<br>
             ----------------------<br>
             ${detalleTicket}<br>
             ----------------------<br>
@@ -789,9 +790,12 @@ app.post('/api/reportes/reimprimir', async (req, res) => {
         const venta = await db.get('SELECT * FROM historial_ventas WHERE id = ?', [id]);
         if (!venta) return res.status(404).json({ error: "No se encontró el registro de venta" });
 
+        const fechaTicketOriginal = new Date(venta.fecha + "Z").toLocaleString('es-MX', { hour12: false });
+
         const avisoTicket = `
             *** REIMPRESIÓN DE TICKET ***<br>
             MESA: ${venta.mesa}<br>
+            FECHA: ${fechaTicketOriginal}<br>
             ----------------------<br>
             ${venta.detalle}<br>
             ----------------------<br>
@@ -859,8 +863,16 @@ app.post('/api/sistema/ejecutar_corte', async (req, res) => {
             return res.status(400).json({ error: "No hay ventas registradas en esta jornada para realizar un corte." });
         }
 
-        const fechaPrimerTicket = ventasJornada[0].fecha;
-        const fechaUltimoTicket = ventasJornada[ventasJornada.length - 1].fecha;
+        const formatearLocal = (fechaUtc) => {
+            return new Date(fechaUtc + "Z").toLocaleString('es-MX', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            });
+        };
+
+        const fechaPrimerTicket = formatearLocal(ventasJornada[0].fecha);
+        const fechaUltimoTicket = formatearLocal(ventasJornada[ventasJornada.length - 1].fecha);
 
         const productosDb = await db.all('SELECT nombre, costo FROM productos');
         const costosMap = {};
@@ -886,10 +898,12 @@ app.post('/api/sistema/ejecutar_corte', async (req, res) => {
         const ganancia = ingresos - gastos;
         const detalleVentasJson = JSON.stringify(Object.entries(resumenProd).map(([nombre, cantidad]) => ({ nombre, cantidad })));
 
+        const fechaCorteLocal = new Date().toISOString(); 
+
         const resultadoCorte = await db.run(`
-            INSERT INTO cortes_caja (fecha_primer_ticket, fecha_ultimo_ticket, ingresos, gastos, ganancia, detalle_ventas)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [fechaPrimerTicket, fechaUltimoTicket, ingresos, gastos, ganancia, detalleVentasJson]);
+            INSERT INTO cortes_caja (fecha_corte, fecha_primer_ticket, fecha_ultimo_ticket, ingresos, gastos, ganancia, detalle_ventas)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [fechaCorteLocal, fechaPrimerTicket, fechaUltimoTicket, ingresos, gastos, ganancia, detalleVentasJson]);
 
         const nuevoCorteId = resultadoCorte.lastID;
 

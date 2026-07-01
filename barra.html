@@ -17,6 +17,11 @@
                 margin: 0 !important;
             }
 
+            img {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
             body {
                 background: white;
                 margin: 0;
@@ -96,9 +101,13 @@
         function ejecutarImpresionReciboCaja(recibo) {
             const zona = document.getElementById('zona-invisible-impresion');
             zona.innerHTML = `
-                <div class="ticket-impresion text-center font-mono text-black" style="color: black !important;">
-                    <p class="text-xs font-black border-b border-black pb-1 mb-2">*** BAR EL TUKAN ***</p>
-                    <p class="text-xs font-black border-b border-black pb-1 mb-2">Insurgentes número 16, Tamazulapam Oax</p>
+                <div class="ticket-impresion text-center font-mono text-black" style="color: black !important; padding: 0 !important; margin: 0 !important; line-height: 1.1 !important;">
+                    <img src="resources/tukan-logo-ticket.png" 
+                         style="width: 120px; height: auto; display: inline-block; margin: 0 auto 2px auto; padding: 0;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                                filter: contrast(200%) brightness(80%) grayscale(100%);">
+                    <p class="text-xs font-black border-b border-black pb-1 mb-1" style="margin-top: 2px !important; padding-top: 0 !important;">Insurgentes número 16, Tamazulapam Oax</p>
                     <p class="text-xs font-black border-b border-black pb-1 mb-2">Tel. 953 212 4618</p>
                     <div class="text-left border-b border-black pb-2 mb-2 font-black text-xs uppercase leading-relaxed">${recibo.html}</div>
                 </div>
@@ -161,14 +170,13 @@
                 ${subtext ? `<div class="text-xs font-mono text-black ml-4 mb-1">${subtext}</div>` : ''}`;
             }).join('<br>');
 
-            zona.innerHTML = `
-        <div class="ticket-impresion text-center font-mono">
+            zona.innerHTML = `<div class="ticket-impresion text-center font-mono">
             <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA BARRA ***</p>
             <p class="text-xl font-black uppercase mb-1">${c.mesa}</p>
             <p class="text-xs font-black text-black mb-4">${new Date().toLocaleDateString('es-MX')} | ${c.fecha}</p>
             <div class="text-left text-xs font-black text-black border-b border-black pb-2 mb-2">${itemsHtml}</div>
-        </div>
-    `;
+                </div>
+            `;
 
             document.body.classList.add('overflow-hidden');
             zona.classList.remove('hidden');

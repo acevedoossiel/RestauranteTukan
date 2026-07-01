@@ -130,15 +130,14 @@
                 ${subtext ? `<div class="text-xs font-mono text-slate-700 ml-4 mb-1">${subtext}</div>` : ''}`;
             }).join('<br>');
 
-            zona.innerHTML = `
-       <div class="ticket-impresion text-center font-mono">
+            zona.innerHTML = `<div class="ticket-impresion text-center font-mono">
             <p class="text-xs font-black border-b border-black pb-1 mb-2">*** COMANDA COCINA ***</p>
             <p class="text-xl font-black uppercase mb-1">${c.mesa}</p>
             <p class="text-xs font-black text-black mb-4">${new Date().toLocaleDateString('es-MX')} | ${c.fecha}</p>
             <div class="text-left text-xs font-black text-black border-b border-black pb-2 mb-2">${itemsHtml}</div>
             <p class="text-[9px] text-slate-400">--- SISTEMA TUKAN POS ---</p>
-        </div>
-    `;
+                </div>
+            `;
 
             document.body.classList.add('overflow-hidden');
             zona.classList.remove('hidden');
