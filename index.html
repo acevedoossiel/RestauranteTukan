@@ -13,9 +13,8 @@
     </style>
 </head>
 
-<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative"
-    style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
-
+<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative" onload="actualizarEstadoMesas()" 
+style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="fixed inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
     <div id="vista-mesas" class="relative z-10">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
@@ -904,7 +903,7 @@
             if (vistaMesas && !vistaMesas.classList.contains('hidden')) {
                 await actualizarEstadoMesas();
             }
-        }, 5000);
+        }, 4000);
     </script>
 </body>
 
