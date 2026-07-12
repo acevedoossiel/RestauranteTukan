@@ -110,11 +110,19 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
             <div id="resumen-final"
                 class="bg-slate-50 p-4 rounded-xl mb-6 text-xs font-mono text-slate-700 max-h-60 overflow-y-auto space-y-1 border border-slate-100">
             </div>
-            <div class="flex gap-2">
+            <!-- <div class="flex gap-2">
                 <button onclick="cerrarModal()"
                     class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Corregir</button>
                 <button onclick="enviarComanda()"
                     class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">Confirmar</button>
+            </div> -->
+            <div id="contenedor-acciones-modal" class="flex gap-2">
+                <button onclick="cerrarModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Corregir</button>
+                <button id="btn-confirmar-envio" onclick="enviarComanda()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">Confirmar</button>
+            </div>
+            
+            <div id="cargador-envio-modal" class="hidden text-center py-3 text-slate-500 font-black text-xs uppercase tracking-wider animate-pulse">
+                🚀 Enviando comanda... Por favor espera ⏳
             </div>
         </div>
     </div>
@@ -502,7 +510,37 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
 
         function cerrarModal() { document.getElementById('modal-confirmar').classList.add('hidden'); }
 
+        // async function enviarComanda() {
+        //     const itemsParaEnviar = [];
+
+        //     itemsNuevos.forEach(i => {
+        //         for (let k = 0; k < i.cant; k++) {
+        //             itemsParaEnviar.push({
+        //                 display: i.nombre,
+        //                 base: i.nombre,
+        //                 modificadores: i.modificadores,
+        //                 nota: i.nota
+        //             });
+        //         }
+        //     });
+
+        //     await fetch(`${API}/enviar_comanda`, {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar })
+        //     });
+        //     location.reload();
+        // }
+
         async function enviarComanda() {
+            const zonaBotones = document.getElementById('contenedor-acciones-modal');
+            const zonaCargador = document.getElementById('cargador-envio-modal');
+
+            if (zonaBotones && zonaCargador) {
+                zonaBotones.classList.add('hidden');
+                zonaCargador.classList.remove('hidden');
+            }
+
             const itemsParaEnviar = [];
 
             itemsNuevos.forEach(i => {
@@ -516,13 +554,25 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
                 }
             });
 
-            await fetch(`${API}/enviar_comanda`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar })
-            });
-            location.reload();
+            try {
+                await fetch(`${API}/enviar_comanda`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar })
+                });
+                location.reload();
+            } catch (error) {
+                console.error("Error al enviar", error);
+                alert("Hubo un problema con la red. Inténtalo de nuevo.");
+                
+                if (zonaBotones && zonaCargador) {
+                    zonaBotones.classList.remove('hidden');
+                    zonaCargador.classList.add('hidden');
+                }
+            }
         }
+
+
 
         function abrirFlujoCobro() {
             if (itemsEnDB.length === 0) return alert("Esta mesa no tiene consumos registrados.");
