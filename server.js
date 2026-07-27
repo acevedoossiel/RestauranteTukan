@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-let ipLocalReal = 'localhost'; 
+let ipLocalReal = 'localhost';
 const interfaces = os.networkInterfaces();
 
 for (let devName in interfaces) {
@@ -44,7 +44,7 @@ let colaRecibosImpresion = [];
 
 (async () => {
     db = await open({ filename: 'restaurante.db', driver: sqlite3.Database });
-    
+
     await db.exec(`
         CREATE TABLE IF NOT EXISTS pedidos_activos (
             id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -151,7 +151,7 @@ let colaRecibosImpresion = [];
     if (!modoBarra) {
         await db.run("INSERT INTO variables_sistema (clave, valor) VALUES ('modo_pantalla_barra', 'tablet')");
     }
-    
+
     console.log("✅ Servidor Tukan: Estructura de Base de Datos lista.");
 })();
 
@@ -181,36 +181,47 @@ app.post('/enviar_comanda', async (req, res) => {
             const modsTexto = JSON.stringify(item.modificadores || []);
             const notaTexto = item.nota || "";
 
-            await db.run(`
-                INSERT INTO pedidos_activos (mesa, producto, itemBase, modificadores, nota, destino) 
-                VALUES (?, ?, ?, ?, ?, ?)`, 
-                [mesa, item.display, item.base, modsTexto, notaTexto, destino]
-            );
-
             const itemFormateado = {
-                producto: item.display,
+                display: item.display,
+                base: item.base,
                 modificadores: modsTexto,
-                nota: notaTexto
+                nota: notaTexto,
+                destino: destino
             };
 
-            if (destino === 'barra') { elementosBarra.push(itemFormateado); } 
+            if (destino === 'barra') { elementosBarra.push(itemFormateado); }
             else { elementosCocina.push(itemFormateado); }
+        }
+
+        await db.run('BEGIN TRANSACTION');
+
+        for (let item of items) {
+            const prod = await db.get('SELECT destino FROM productos WHERE nombre = ?', [item.base]);
+            const destino = prod ? prod.destino : 'cocina';
+            const modsTexto = JSON.stringify(item.modificadores || []);
+            const notaTexto = item.nota || "";
+
+            await db.run(`
+                INSERT INTO pedidos_activos (mesa, producto, itemBase, modificadores, nota, destino) 
+                VALUES (?, ?, ?, ?, ?, ?)`,
+                [mesa, item.display, item.base, modsTexto, notaTexto, destino]
+            );
         }
 
         if (elementosCocina.length > 0) {
             const idCocina = `CMD-${timestampBase}-COC`;
-            await db.run('INSERT INTO control_comandas (id, mesa, fecha, destino, estatus) VALUES (?, ?, ?, "cocina", 0)', [idCocina, mesa, horaActual]);
-            for(let ic of elementosCocina) {
-                await db.run('INSERT INTO items_comanda (comanda_id, producto, modificadores, nota) VALUES (?, ?, ?, ?)', [idCocina, ic.producto, ic.modificadores, ic.nota]);
+            for (let ic of elementosCocina) {
+                await db.run('INSERT INTO items_comanda (comanda_id, producto, modificadores, nota) VALUES (?, ?, ?, ?)', [idCocina, ic.display, ic.modificadores, ic.nota]);
             }
+            await db.run('INSERT INTO control_comandas (id, mesa, fecha, destino, estatus) VALUES (?, ?, ?, "cocina", 0)', [idCocina, mesa, horaActual]);
         }
 
         if (elementosBarra.length > 0) {
             const idBarra = `CMD-${timestampBase}-BAR`;
-            await db.run('INSERT INTO control_comandas (id, mesa, fecha, destino, estatus) VALUES (?, ?, ?, "barra", 0)', [idBarra, mesa, horaActual]);
-            for(let ib of elementosBarra) {
-                await db.run('INSERT INTO items_comanda (comanda_id, producto, modificadores, nota) VALUES (?, ?, ?, ?)', [idBarra, ib.producto, ib.modificadores, ib.nota]);
+            for (let ib of elementosBarra) {
+                await db.run('INSERT INTO items_comanda (comanda_id, producto, modificadores, nota) VALUES (?, ?, ?, ?)', [idBarra, ib.display, ib.modificadores, ib.nota]);
             }
+            await db.run('INSERT INTO control_comandas (id, mesa, fecha, destino, estatus) VALUES (?, ?, ?, "barra", 0)', [idBarra, mesa, horaActual]);
         }
 
         if (mesa.startsWith('PARA LLEVAR #')) {
@@ -220,15 +231,20 @@ app.post('/enviar_comanda', async (req, res) => {
             }
         }
 
+        await db.run('COMMIT');
+
         res.json({ status: "ok" });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        await db.run('ROLLBACK');
+        res.status(500).json({ error: e.message });
+    }
 });
 
 
 app.delete('/api/categorias/:id', async (req, res) => {
     try {
         const catId = req.params.id;
-        
+
         await db.run(`
             DELETE FROM modificadores_productos 
             WHERE producto_id IN (
@@ -239,9 +255,9 @@ app.delete('/api/categorias/:id', async (req, res) => {
         await db.run('DELETE FROM productos WHERE categoria_id = ?', [catId]);
 
         await db.run('DELETE FROM subcategorias WHERE categoria_id = ?', [catId]);
-        
+
         await db.run('DELETE FROM categorias WHERE id = ?', [catId]);
-        
+
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -262,7 +278,7 @@ app.delete('/api/subcategorias/:id', async (req, res) => {
         await db.run('DELETE FROM productos WHERE subcategoria_id = ?', [subId]);
 
         await db.run('DELETE FROM subcategorias WHERE id = ?', [subId]);
-        
+
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -272,7 +288,7 @@ app.delete('/api/subcategorias/:id', async (req, res) => {
 app.get('/api/comandas/cocina', async (req, res) => {
     try {
         const comandasHeader = await db.all('SELECT * FROM control_comandas WHERE destino = "cocina" AND estatus = 0 ORDER BY id ASC');
-        
+
         let resultado = [];
         for (let c of comandasHeader) {
             const dbItems = await db.all('SELECT * FROM items_comanda WHERE comanda_id = ?', [c.id]);
@@ -288,7 +304,7 @@ app.get('/api/comandas/cocina', async (req, res) => {
             });
         }
         res.json(resultado);
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -296,7 +312,7 @@ app.get('/api/comandas/cocina', async (req, res) => {
 app.get('/api/comandas/barra', async (req, res) => {
     try {
         const comandasHeader = await db.all('SELECT * FROM control_comandas WHERE destino = "barra" AND estatus = 0 ORDER BY id ASC');
-        
+
         let resultado = [];
         for (let c of comandasHeader) {
             const dbItems = await db.all('SELECT * FROM items_comanda WHERE comanda_id = ?', [c.id]);
@@ -312,7 +328,7 @@ app.get('/api/comandas/barra', async (req, res) => {
             });
         }
         res.json(resultado);
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -333,13 +349,13 @@ app.get('/cuenta/:mesa', async (req, res) => {
 app.delete('/api/mesas/:numero', async (req, res) => {
     try {
         const numero = req.params.numero;
-        
+
         const ocupada = await db.get('SELECT 1 FROM pedidos_activos WHERE mesa = ? OR mesa = ? LIMIT 1', [numero, numero.toString()]);
-        
+
         if (ocupada) {
             return res.status(400).json({ error: "No puedes quitar una mesa que tiene cuenta abierta" });
         }
-        
+
         await db.run('DELETE FROM configuracion_mesas WHERE numero_mesa = ?', [numero]);
         res.json({ success: true });
     } catch (e) {
@@ -348,8 +364,8 @@ app.delete('/api/mesas/:numero', async (req, res) => {
 });
 
 app.post('/api/cobrar_parcial', async (req, res) => {
-    const { mesa, itemsACobrar } = req.body; 
-    
+    const { mesa, itemsACobrar } = req.body;
+
     if (!itemsACobrar || itemsACobrar.length === 0) {
         return res.status(400).json({ error: "No se seleccionaron elementos para cobrar" });
     }
@@ -357,13 +373,13 @@ app.post('/api/cobrar_parcial', async (req, res) => {
     try {
         let totalParcial = 0;
         let idsParaEliminar = [];
-        
+
         const productosAgrupados = {};
 
         for (let item of itemsACobrar) {
             const prodEnDb = await db.get('SELECT precio FROM productos WHERE nombre = ?', [item.itemBase]);
             let precioBase = prodEnDb ? prodEnDb.precio : 0;
-            
+
             let precioModificadores = 0;
             const mods = JSON.parse(item.modificadores || '[]');
             mods.forEach(m => precioModificadores += parseFloat(m.precio_extra || 0));
@@ -414,7 +430,7 @@ app.post('/api/cobrar_parcial', async (req, res) => {
             html: avisoTicket
         });
 
-        await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', 
+        await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)',
             [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
         );
 
@@ -431,7 +447,7 @@ app.post('/api/cobrar_parcial', async (req, res) => {
 app.post('/cerrar_cuenta', async (req, res) => {
     const { mesa } = req.body;
     const items = await db.all('SELECT * FROM pedidos_activos WHERE mesa = ?', [mesa]);
-    
+
     if (items.length > 0) {
         let total = 0;
         const productosAgrupados = {};
@@ -439,7 +455,7 @@ app.post('/cerrar_cuenta', async (req, res) => {
         for (let item of items) {
             const prodEnDb = await db.get('SELECT precio FROM productos WHERE nombre = ?', [item.itemBase]);
             let precioBase = prodEnDb ? prodEnDb.precio : 0;
-            
+
             let precioModificadores = 0;
             const mods = JSON.parse(item.modificadores || '[]');
             mods.forEach(m => precioModificadores += parseFloat(m.precio_extra || 0));
@@ -494,7 +510,7 @@ app.post('/cerrar_cuenta', async (req, res) => {
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
         await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);
         await db.run('DELETE FROM control_comandas WHERE mesa = ?', [mesa]);
-        
+
         res.json({ total, detalle: detalleTicket });
     } else {
         res.json({ total: 0 });
@@ -509,8 +525,8 @@ app.get('/api/menu_admin', async (req, res) => {
         JOIN categorias c ON p.categoria_id = c.id
         LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
     `);
-    
-    for(let p of productos) {
+
+    for (let p of productos) {
         p.modificadores = await db.all('SELECT * FROM modificadores_productos WHERE producto_id = ?', [p.id]);
     }
     res.json(productos);
@@ -522,10 +538,10 @@ app.post('/api/productos', async (req, res) => {
     const finalDestino = destino ? destino : 'cocina';
 
     const result = await db.run(
-        'INSERT INTO productos (nombre, precio, costo, categoria_id, subcategoria_id, destino) VALUES (?, ?, ?, ?, ?, ?)', 
+        'INSERT INTO productos (nombre, precio, costo, categoria_id, subcategoria_id, destino) VALUES (?, ?, ?, ?, ?, ?)',
         [nombre, precio, costo, categoria_id, finalSubId, finalDestino]
     );
-    
+
     const productoId = result.lastID;
 
     if (modificadores && Array.isArray(modificadores)) {
@@ -581,7 +597,7 @@ app.post('/api/mesas', async (req, res) => {
     try {
         await db.run('INSERT INTO configuracion_mesas (numero_mesa) VALUES (?)', [req.body.numero]);
         res.json({ success: true });
-    } catch(e) { res.status(400).json({ error: "Mesa ya existe" }); }
+    } catch (e) { res.status(400).json({ error: "Mesa ya existe" }); }
 });
 
 
@@ -589,7 +605,7 @@ app.get('/api/comandas/:destino', async (req, res) => {
     try {
         const { destino } = req.params;
         const comandasHeader = await db.all('SELECT * FROM control_comandas WHERE destino = ? AND estatus = 0 ORDER BY id ASC', [destino]);
-        
+
         let resultado = [];
         for (let c of comandasHeader) {
             const dbItems = await db.all('SELECT * FROM items_comanda WHERE comanda_id = ?', [c.id]);
@@ -601,7 +617,7 @@ app.get('/api/comandas/:destino', async (req, res) => {
             });
         }
         res.json(resultado);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/comandas_sistema/historial', async (req, res) => {
@@ -620,7 +636,7 @@ app.get('/api/comandas_sistema/historial', async (req, res) => {
             });
         }
         res.json(resultado);
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/comandas/completar', async (req, res) => {
@@ -629,7 +645,7 @@ app.post('/api/comandas/completar', async (req, res) => {
         let horaCierre = new Date().toLocaleTimeString();
         await db.run('UPDATE control_comandas SET estatus = 1, fecha_cierre = ? WHERE id = ?', [horaCierre, id]);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/comandas/reabrir', async (req, res) => {
@@ -637,14 +653,14 @@ app.post('/api/comandas/reabrir', async (req, res) => {
         const { id } = req.body;
         await db.run('UPDATE control_comandas SET estatus = 0, fecha_cierre = NULL WHERE id = ?', [id]);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.delete('/api/comandas_sistema/purgar_historial', async (req, res) => {
     try {
         await db.run('DELETE FROM control_comandas WHERE estatus = 1');
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/reportes', async (req, res) => {
@@ -695,7 +711,7 @@ app.get('/api/sistema/pin', async (req, res) => {
     try {
         const row = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'pin_admin'");
         res.json({ pin: row ? row.valor : '1234' });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/sistema/pin', async (req, res) => {
@@ -704,7 +720,7 @@ app.put('/api/sistema/pin', async (req, res) => {
         if (!nuevoPin || nuevoPin.trim().length === 0) return res.status(400).json({ error: "PIN inválido" });
         await db.run("UPDATE variables_sistema SET valor = ? WHERE clave = 'pin_admin'", [nuevoPin.trim()]);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/sistema/verificar_pin', async (req, res) => {
@@ -715,7 +731,7 @@ app.post('/api/sistema/verificar_pin', async (req, res) => {
             return res.json({ valido: true });
         }
         res.json({ valido: false });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/pedidos/cancelar_item', async (req, res) => {
@@ -723,14 +739,14 @@ app.post('/api/pedidos/cancelar_item', async (req, res) => {
         const { id, mesa, producto, modificadores, nota } = req.body;
 
         const result = await db.run('DELETE FROM pedidos_activos WHERE id = ? AND mesa = ?', [id, mesa]);
-        
+
         if (result.changes > 0) {
-            const modsTextoPlano = typeof modificadores === 'string' 
-                ? modificadores 
+            const modsTextoPlano = typeof modificadores === 'string'
+                ? modificadores
                 : JSON.stringify(modificadores || []);
 
             const comandaHeader = await db.all('SELECT id FROM control_comandas WHERE mesa = ? AND estatus = 0', [mesa]);
-            
+
             for (let c of comandaHeader) {
                 await db.run(`
                     DELETE FROM items_comanda 
@@ -749,7 +765,7 @@ app.post('/api/pedidos/cancelar_item', async (req, res) => {
             return res.json({ success: true });
         }
         res.status(404).json({ success: false, error: "No se encontró el artículo a cancelar" });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/sistema/modos_pantalla', async (req, res) => {
@@ -760,7 +776,7 @@ app.get('/api/sistema/modos_pantalla', async (req, res) => {
             cocina: cocina ? cocina.valor : 'tablet',
             barra: barra ? barra.valor : 'tablet'
         });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/sistema/modos_pantalla', async (req, res) => {
@@ -769,7 +785,7 @@ app.put('/api/sistema/modos_pantalla', async (req, res) => {
         if (cocina) await db.run("UPDATE variables_sistema SET valor = ? WHERE clave = 'modo_pantalla_cocina'", [cocina]);
         if (barra) await db.run("UPDATE variables_sistema SET valor = ? WHERE clave = 'modo_pantalla_barra'", [barra]);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/sistema/cola_recibos', (req, res) => {
@@ -811,8 +827,8 @@ app.post('/api/reportes/reimprimir', async (req, res) => {
         });
 
         res.json({ success: true });
-    } catch(e) { 
-        res.status(500).json({ error: e.message }); 
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -858,7 +874,7 @@ app.get('/api/sistema/siguiente_llevar', async (req, res) => {
 app.post('/api/sistema/ejecutar_corte', async (req, res) => {
     try {
         const ventasJornada = await db.all('SELECT * FROM historial_ventas WHERE corte_id = 0 ORDER BY fecha ASC');
-        
+
         if (ventasJornada.length === 0) {
             return res.status(400).json({ error: "No hay ventas registradas en esta jornada para realizar un corte." });
         }
@@ -898,7 +914,7 @@ app.post('/api/sistema/ejecutar_corte', async (req, res) => {
         const ganancia = ingresos - gastos;
         const detalleVentasJson = JSON.stringify(Object.entries(resumenProd).map(([nombre, cantidad]) => ({ nombre, cantidad })));
 
-        const fechaCorteLocal = new Date().toISOString(); 
+        const fechaCorteLocal = new Date().toISOString();
 
         const resultadoCorte = await db.run(`
             INSERT INTO cortes_caja (fecha_corte, fecha_primer_ticket, fecha_ultimo_ticket, ingresos, gastos, ganancia, detalle_ventas)

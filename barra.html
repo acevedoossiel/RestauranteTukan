@@ -46,14 +46,17 @@
     </style>
 </head>
 
-<body class="w-full h-screen flex flex-col overflow-hidden font-sans relative" style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">    
+<body class="w-full h-screen flex flex-col overflow-hidden font-sans relative"
+    style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="absolute inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
     <div class="relative z-10 w-full h-full flex flex-col p-4 md:p-6 overflow-y-auto no-scrollbar pb-32">
 
-        <header class="no-print flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-slate-200/80 pb-4">
+        <header
+            class="no-print flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-slate-200/80 pb-4">
             <div>
                 <h1 class="text-xl font-black uppercase tracking-wider text-emerald-900">🍹 PRODUCCIÓN: BARRA</h1>
-                <p class="text-xs text-emerald-800/50 Fly font-black uppercase tracking-widest">Control dinámico de bebidas y postres</p>
+                <p class="text-xs text-emerald-800/50 Fly font-black uppercase tracking-widest">Control dinámico de
+                    bebidas y postres</p>
             </div>
 
             <button onclick="toggleHistorial()"
@@ -61,12 +64,16 @@
                 Ver Recuperación</button>
         </header>
 
-        <section id="panel-historial" class="no-print hidden bg-emerald-50/90 backdrop-blur-md border-2 border-emerald-100 p-4 rounded-3xl mb-6">
-            <h3 class="text-xs font-black text-emerald-800 uppercase tracking-widest mb-3">Historial de Bebidas Archivadas (Seguridad)</h3>
-            <div id="lista-historial-recuperacion" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs"></div>
+        <section id="panel-historial"
+            class="no-print hidden bg-emerald-50/90 backdrop-blur-md border-2 border-emerald-100 p-4 rounded-3xl mb-6">
+            <h3 class="text-xs font-black text-emerald-800 uppercase tracking-widest mb-3">Historial de Bebidas
+                Archivadas (Seguridad)</h3>
+            <div id="lista-historial-recuperacion" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+            </div>
         </section>
 
-        <main id="contenedor-comandas-barra" class="no-print grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full h-fit"></main>
+        <main id="contenedor-comandas-barra"
+            class="no-print grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full h-fit"></main>
 
     </div>
 
@@ -79,14 +86,14 @@
         let idsComandasProcesadas = new Set();
         let checkboxesMarcadosBarra = new Set();
 
-       function cambiarModoTrabajo(modo) {
+        function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
             localStorage.setItem('modo_barra', modo);
 
             const contVisual = document.getElementById('contenedor-comandas-barra');
             if (!contVisual) return;
 
-        } 
+        }
 
         async function verificarRecibosCaja() {
             try {
@@ -95,7 +102,7 @@
                 if (recibos && recibos.length > 0) {
                     ejecutarImpresionReciboCaja(recibos[0]);
                 }
-            } catch(err) { console.error(err); }
+            } catch (err) { console.error(err); }
         }
 
         function ejecutarImpresionReciboCaja(recibo) {
@@ -122,7 +129,7 @@
             }, 350);
         }
 
-       async function consultarComandas() {
+        async function consultarComandas() {
             try {
                 const resModo = await fetch(`${API}/api/sistema/modos_pantalla`);
                 const modos = await resModo.json();
@@ -141,7 +148,7 @@
                 }
                 renderizarPantallaBarra(comandas);
             } catch (e) { console.error(e); }
-        } 
+        }
 
         function ejecutarImpresionTermica(c) {
             const zona = document.getElementById('zona-invisible-impresion');
@@ -343,7 +350,7 @@
             }
         }
 
-        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 800); setInterval(verificarRecibosCaja, 1500); };
+        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 1000); setInterval(verificarRecibosCaja, 1500); };
     </script>
 </body>
 
