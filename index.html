@@ -13,8 +13,8 @@
     </style>
 </head>
 
-<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative" onload="actualizarEstadoMesas()" 
-style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
+<body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative" onload="actualizarEstadoMesas()"
+    style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="fixed inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
     <div id="vista-mesas" class="relative z-10">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
@@ -117,11 +117,14 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
                     class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">Confirmar</button>
             </div> -->
             <div id="contenedor-acciones-modal" class="flex gap-2">
-                <button onclick="cerrarModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Corregir</button>
-                <button id="btn-confirmar-envio" onclick="enviarComanda()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">Confirmar</button>
+                <button onclick="cerrarModal()"
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-xl font-black text-xs uppercase transition-all">Corregir</button>
+                <button id="btn-confirmar-envio" onclick="enviarComanda()"
+                    class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/10 transition-all">Confirmar</button>
             </div>
-            
-            <div id="cargador-envio-modal" class="hidden text-center py-3 text-slate-500 font-black text-xs uppercase tracking-wider animate-pulse">
+
+            <div id="cargador-envio-modal"
+                class="hidden text-center py-3 text-slate-500 font-black text-xs uppercase tracking-wider animate-pulse">
                 🚀 Enviando comanda... Por favor espera ⏳
             </div>
         </div>
@@ -161,16 +164,19 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
 
     <div id="modal-liberar-parcial"
         class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] flex flex-col border border-slate-100 shadow-2xl">
+        <div
+            class="bg-white w-full max-w-md rounded-[2rem] p-6 max-h-[92vh] flex flex-col border border-slate-100 shadow-2xl">
             <div class="mb-4">
                 <h2 class="text-xl font-black uppercase text-slate-900 mb-0.5">👤 Pago Anticipado</h2>
-                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Mesa Activa: <span id="span-mesa-liberar" class="text-orange-500"></span></p>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Mesa Activa: <span
+                        id="span-mesa-liberar" class="text-orange-500"></span></p>
             </div>
 
             <div class="flex-1 overflow-y-auto no-scrollbar p-1 mb-6 space-y-2">
-                <p class="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Selecciona únicamente los artículos que se van a pagar ahorita:</p>
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Selecciona únicamente los
+                    artículos que se van a pagar ahorita:</p>
                 <div id="lista-checks-liberar" class="space-y-2">
-                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 shrink-0">
@@ -255,7 +261,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
             try {
                 const res = await fetch(`${API}/api/sistema/siguiente_llevar`);
                 const data = await res.json();
-                
+
                 const numeroFolio = `PARA LLEVAR #${data.numero}`;
                 irAMenu(numeroFolio);
             } catch (err) {
@@ -307,13 +313,22 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
 
         async function mostrarCategorias() {
             const g = document.getElementById('grid-botones');
-            document.getElementById('btn-atras').onclick = () => { document.getElementById('vista-menu').classList.add('hidden'); document.getElementById('vista-mesas').classList.remove('hidden'); actualizarEstadoMesas(); };
+            document.getElementById('btn-atras').onclick = () => {
+                document.getElementById('vista-menu').classList.add('hidden');
+                document.getElementById('vista-mesas').classList.remove('hidden');
+                actualizarEstadoMesas();
+            };
             g.innerHTML = '<p class="col-span-2 text-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Categorías</p>';
 
             const resCat = await fetch(`${API}/api/categorias`);
             const categorias = await resCat.json();
+
+            categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
             const resMenu = await fetch(`${API}/api/menu_admin`);
             menuGlobal = await resMenu.json();
+
+            menuGlobal.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             categorias.forEach(c => {
                 const btn = document.createElement('button');
@@ -330,6 +345,9 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
             g.innerHTML = `<p class="col-span-2 text-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">${catNombre}</p>`;
 
             fetch(`${API}/api/subcategorias/${catId}`).then(r => r.json()).then(subcategorias => {
+
+                subcategorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
                 const productosDirectos = menuGlobal.filter(p => Number(p.categoria_id) === Number(catId) && Number(p.subcategoria_id || 0) === 0);
 
                 subcategorias.forEach(s => {
@@ -339,6 +357,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
                     btn.onclick = () => mostrarProductosDeSub(s.id, catId, s.nombre);
                     g.appendChild(btn);
                 });
+
                 productosDirectos.forEach(p => {
                     const btn = document.createElement('button');
                     btn.className = "bg-white border border-slate-200 text-slate-800 p-5 rounded-2xl font-black uppercase shadow-sm text-xs active:scale-95 transition-all";
@@ -364,14 +383,14 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
             });
         }
 
-       function lanzarPersonalizador(producto) {
+        function lanzarPersonalizador(producto) {
             productoEnPersonalizacion = producto;
 
             document.getElementById('mod-producto-titulo').innerText = producto.nombre;
             document.getElementById('mod-nota-libre').value = "";
 
             const contChecks = document.getElementById('contenedor-mods-checks');
-            
+
             if (producto.modificadores && producto.modificadores.length > 0) {
                 contChecks.innerHTML = producto.modificadores.map((m, index) => `
                     <label class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
@@ -391,9 +410,9 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
                     </div>
                 `;
             }
-            
+
             document.getElementById('modal-modificadores').classList.remove('hidden');
-        } 
+        }
 
 
         function cerrarModalModificadores() { document.getElementById('modal-modificadores').classList.add('hidden'); productoEnPersonalizacion = null; }
@@ -564,7 +583,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
             } catch (error) {
                 console.error("Error al enviar", error);
                 alert("Hubo un problema con la red. Inténtalo de nuevo.");
-                
+
                 if (zonaBotones && zonaCargador) {
                     zonaBotones.classList.remove('hidden');
                     zonaCargador.classList.add('hidden');
@@ -655,7 +674,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
             itemsPersona.forEach(item => {
                 const prodMenu = menuGlobal.find(p => p.nombre === item.itemBase);
                 let precioBase = prodMenu ? prodMenu.precio : 0;
-                
+
                 let precioItem = precioBase;
                 const mods = JSON.parse(item.modificadores || '[]');
                 mods.forEach(m => precioItem += (m.precio_extra || 0));
@@ -882,7 +901,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
         }
         function abrirModalLiberarParcial() {
             if (itemsEnDB.length === 0) return alert("Esta mesa no tiene consumos enviados todavía por liquidar.");
-            
+
             document.getElementById('span-mesa-liberar').innerText = mesaSel;
             const contLista = document.getElementById('lista-checks-liberar');
 
@@ -890,7 +909,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
                 const mods = JSON.parse(item.modificadores || '[]');
                 let detalle = mods.map(m => m.nombre).join(', ');
                 if (item.nota) detalle += (detalle ? ' | ' : '') + item.nota;
-                
+
                 return `
                     <label class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all">
                         <input type="checkbox" name="check-liberar-item" value="${item.id}" class="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-0">
@@ -924,7 +943,7 @@ style="background-image: url('resources/tukan-fondo.png'); background-size: 300p
                 if (res.ok) {
                     const data = await res.json();
                     alert(`✅ Pago parcial asentado con éxito por: $${data.total.toFixed(2)}\nEl recibo se ha enviado a la barra.`);
-                    
+
                     document.getElementById('modal-liberar-parcial').classList.add('hidden');
 
                     const resCuenta = await fetch(`${API}/cuenta/${encodeURIComponent(mesaSel)}`);
