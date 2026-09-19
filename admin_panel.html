@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+    <script src="ui-notificaciones.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin El Tukan Restaurante</title>
@@ -27,14 +28,17 @@
             const doceHorasEnMiliseundos = 12 * 60 * 60 * 1000;
             const tiempoTranscurrido = Date.now() - parseInt(loginTime);
             if (tiempoTranscurrido >= doceHorasEnMiliseundos) {
-                alert("Tu sesión de 12 horas ha expirado. Por seguridad, debes iniciar sesión nuevamente.");
+                Toast.show("Tu sesión de 12 horas ha expirado. Por seguridad, debes iniciar sesión nuevamente.", "warning");
                 sessionStorage.clear();
                 borrarCookieSesion();
-                window.location.replace('admin_login.html');
+                // Se espera un momento para que el aviso alcance a leerse antes de salir de la página
+                // (Toast.show ya no congela la pestaña como hacía alert(), así que sin esta pausa
+                // la redirección ocurriría antes de que el mensaje llegue a pintarse en pantalla).
+                setTimeout(() => window.location.replace('admin_login.html'), 1800);
             }
         }
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tailwind.css">
     <script src="config.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar {
@@ -63,7 +67,7 @@
     <aside id="sidebar"
         class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-white/95 backdrop-blur-md text-emerald-950 transform -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 h-screen transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0 border-r border-slate-200/60 relative z-10">
         <div class="p-6 text-center border-b border-slate-800/60">
-            <img src="resources/Tukan-logo.png" alt="Logo El Tukan" class="mx-auto w-24 h-auto mb-3 drop-shadow-md">
+            <img src="resources/Tukan-logo.png" alt="Logo El Tukan" class="mx-auto w-24 h-24 object-contain mb-3 drop-shadow-md">
             <h1 class="text-lg font-black uppercase tracking-wider ext-emerald-900">
                 EL TUKAN <span class="text-orange-500">ADMIN</span>
             </h1>
@@ -566,7 +570,7 @@
         }
 
         async function eliminarCat(id, nombre) {
-            if (confirm(`¿Eliminar la categoría "${nombre.toUpperCase()}"?\nOJO: Esto no borrará los productos, pero se quedarán sin categoría.`)) {
+            if (await Toast.confirm(`¿Eliminar la categoría "${nombre.toUpperCase()}"?\nOJO: Esto no borrará los productos, pero se quedarán sin categoría.`)) {
                 const res = await fetch(`${API}/api/categorias/${id}`, { method: 'DELETE' });
                 await verificarRespuestaHttp(res);
                 cargarDatos();
@@ -574,7 +578,7 @@
         }
 
         async function eliminarSub(id, nombre) {
-            if (confirm(`¿Eliminar la subcategoría "${nombre.toUpperCase()}"?`)) {
+            if (await Toast.confirm(`¿Eliminar la subcategoría "${nombre.toUpperCase()}"?`)) {
                 const res = await fetch(`${API}/api/subcategorias/${id}`, { method: 'DELETE' });
                 await verificarRespuestaHttp(res);
                 cargarDatos();
@@ -609,7 +613,7 @@
                 modificadores: arrayModificadores
             };
 
-            if (!body.categoria_id || !body.nombre || isNaN(body.precio)) return alert("Revisa los campos obligatorios");
+            if (!body.categoria_id || !body.nombre || isNaN(body.precio)) return Toast.show("Revisa los campos obligatorios");
 
             const res = await fetch(`${API}/api/productos`, {
                 method: 'POST',
@@ -680,7 +684,7 @@
         function cerrarModal() { document.getElementById('modal-edit').classList.add('hidden'); }
 
         async function eliminarProducto(id, nombre) {
-            if (confirm(`¿Eliminar ${nombre.toUpperCase()}?`)) {
+            if (await Toast.confirm(`¿Eliminar ${nombre.toUpperCase()}?`)) {
                 const res = await fetch(`${API}/api/productos/${id}`, { method: 'DELETE' });
                 await verificarRespuestaHttp(res);
                 cargarDatos();
@@ -703,7 +707,7 @@
         async function guardarSubcategoria() {
             const nombre = document.getElementById('subcat-nombre').value;
             const categoria_id = document.getElementById('subcat-parent-id').value;
-            if (!nombre || !categoria_id) return alert("Faltan datos");
+            if (!nombre || !categoria_id) return Toast.show("Faltan datos");
             const res = await fetch(`${API}/api/subcategorias`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -723,7 +727,7 @@
         }
 
         async function editarCat(id, nombreActual) {
-            const nuevoNombre = prompt("Editar nombre de la categoría:", nombreActual);
+            const nuevoNombre = await Toast.prompt("Editar nombre de la categoría:", { valorPorDefecto: nombreActual, textoAceptar: 'Guardar', icono: '📁' });
             if (!nuevoNombre || nuevoNombre === nombreActual) return;
 
             const res = await fetch(`${API}/api/categorias/${id}`, {
@@ -736,7 +740,7 @@
         }
 
         async function editarSub(id, nombreActual) {
-            const nuevoNombre = prompt("Editar nombre de la subcategoría:", nombreActual);
+            const nuevoNombre = await Toast.prompt("Editar nombre de la subcategoría:", { valorPorDefecto: nombreActual, textoAceptar: 'Guardar', icono: '📂' });
             if (!nuevoNombre || nuevoNombre === nombreActual) return;
 
             const res = await fetch(`${API}/api/subcategorias/${id}`, {
@@ -892,7 +896,7 @@
         }
 
         function generarPDF() {
-            if (!datosReporteActual) return alert("Primero filtra los datos");
+            if (!datosReporteActual) return Toast.show("Primero filtra los datos");
 
             let contenido = `REPORTE DE VENTAS - EL TUKAN RESTAURANTE\n`;
             contenido += `Periodo: ${document.getElementById('rep-inicio').value} al ${document.getElementById('rep-fin').value}\n`;
@@ -916,19 +920,19 @@
 
         async function actualizarPinGerencia() {
             const nuevoPin = document.getElementById('input-pin-sistema').value;
-            if (!nuevoPin || nuevoPin.trim().length === 0) return alert("Por favor ingresa un PIN válido.");
+            if (!nuevoPin || nuevoPin.trim().length === 0) return Toast.show("Por favor ingresa un PIN válido.");
 
-            if (confirm("¿Confirmas que deseas cambiar el PIN de autorización para cancelaciones del restaurante?")) {
+            if (await Toast.confirm("¿Confirmas que deseas cambiar el PIN de autorización para cancelaciones del restaurante?")) {
                 const res = await fetch(`${API}/api/sistema/pin`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nuevoPin: nuevoPin })
                 });
                 if (res.ok) {
-                    alert("🔒 PIN de Gerencia actualizado con éxito en la base de datos.");
+                    Toast.show("🔒 PIN de Gerencia actualizado con éxito en la base de datos.");
                     cargarDatos();
                 } else {
-                    alert("No se pudo actualizar el PIN.");
+                    Toast.show("No se pudo actualizar el PIN.");
                 }
             }
         }
@@ -970,7 +974,7 @@
                 body: JSON.stringify({ cocina, barra })
             });
             if (res.ok) {
-                alert("⚙️ Configuraciones de hardware guardadas exitosamente en la Base de Datos.");
+                Toast.show("⚙️ Configuraciones de hardware guardadas exitosamente en la Base de Datos.");
                 cargarDatos();
             }
         }
@@ -984,13 +988,13 @@
                 });
                 
                 if (res.ok) {
-                    alert("📋 Orden de reimpresión enviada con éxito a la ticketera de Barra.");
+                    Toast.show("📋 Orden de reimpresión enviada con éxito a la ticketera de Barra.");
                 } else {
-                    alert("Error al intentar solicitar la reimpresión del ticket.");
+                    Toast.show("Error al intentar solicitar la reimpresión del ticket.");
                 }
             } catch(err) {
                 console.error(err);
-                alert("Fallo de conexión con el servidor.");
+                Toast.show("Fallo de conexión con el servidor.");
             }
         }
 
@@ -1035,20 +1039,20 @@
         }
 
         async function solicitarCierreJornada() {
-            if (!confirm("⚠️ ATENCIÓN: ¿Estás seguro de cerrar la jornada operativa actual?")) return;
+            if (!await Toast.confirm("⚠️ ATENCIÓN: ¿Estás seguro de cerrar la jornada operativa actual?")) return;
             
             try {
                 const res = await fetch(`${API}/api/sistema/ejecutar_corte`, { method: 'POST' });
                 if (res.ok) {
                     const data = await res.json();
-                    alert(`✅ ¡Corte de Caja #${data.corte_id} procesado con éxito!\n\nTotal de Ingresos Archivados: $${data.total.toFixed(2)}`);
+                    Toast.show(`✅ ¡Corte de Caja #${data.corte_id} procesado con éxito!\n\nTotal de Ingresos Archivados: $${data.total.toFixed(2)}`);
                     cargarHistorialCortes();
                 } else {
                     const err = await res.json();
-                    alert(`⚠️ Alerta: ${err.error || "No se pudo realizar el corte."}`);
+                    Toast.show(`⚠️ Alerta: ${err.error || "No se pudo realizar el corte."}`);
                 }
             } catch (err) {
-                alert("Error de comunicación con el servidor.");
+                Toast.show("Error de comunicación con el servidor.");
             }
         }
 
@@ -1165,7 +1169,7 @@
                 document.getElementById('modal-detalle-corte').classList.remove('hidden');
             } catch (err) {
                 console.error("Error al cargar tickets del corte:", err);
-                alert("Ocurrió un fallo al consultar el historial del corte.");
+                Toast.show("Ocurrió un fallo al consultar el historial del corte.");
             }
         }
 

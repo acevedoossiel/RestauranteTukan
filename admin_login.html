@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+    <script src="ui-notificaciones.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - El Tukan Restaurante</title>
@@ -25,7 +26,7 @@
         }
     </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tailwind.css">
     <script src="config.js"></script>
     <style>
         .backdrop-fade {
@@ -51,7 +52,7 @@
         <div class="bg-white/90 backdrop-blur-md w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border-t-8 border-orange-500 my-8">
             <div class="p-8">
                 <div class="text-center mb-8">
-                    <img src="resources/Tukan-logo.png" alt="Logo Tukan" class="mx-auto w-32 h-auto mb-4">
+                    <img src="resources/Tukan-logo.png" alt="Logo Tukan" class="mx-auto w-32 h-32 object-contain mb-4">
                     <h1 class="text-2xl font-black text-emerald-900 uppercase tracking-wide mt-3">
                         EL TUKAN <span class="text-orange-500">RESTAURANTE</span>
                     </h1>
@@ -122,7 +123,7 @@
                 }
             } catch (err) {
                 console.error("Error detallado:", err);
-                alert("Error de conexión con el servidor");
+                Toast.show("Error de conexión con el servidor");
             }
         }
     </script>
