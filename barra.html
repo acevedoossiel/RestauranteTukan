@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Barra - Tukan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tailwind.css">
+    <script src="ui-notificaciones.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -49,6 +50,11 @@
 <body class="w-full h-screen flex flex-col overflow-hidden font-sans relative"
     style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="absolute inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+
+    <div id="aviso-sin-conexion" class="hidden no-print fixed top-0 left-0 right-0 z-[200] bg-red-600 text-white text-center text-xs font-black uppercase tracking-widest py-2 shadow-lg">
+        ⚠️ Sin conexión con el servidor — reintentando...
+    </div>
+
     <div class="relative z-10 w-full h-full flex flex-col p-4 md:p-6 overflow-y-auto no-scrollbar pb-32">
 
         <header
@@ -85,6 +91,22 @@
         let modoOperacion = localStorage.getItem('modo_barra') || 'tablet';
         let idsComandasProcesadas = new Set();
         let checkboxesMarcadosBarra = new Set();
+        let consultaEnCurso = false; // evita que se acumulen peticiones si el WiFi va lento
+
+        async function fetchConTimeout(url, options = {}, timeoutMs = 5000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { ...options, signal: controller.signal });
+                document.getElementById('aviso-sin-conexion').classList.add('hidden');
+                return res;
+            } catch (err) {
+                document.getElementById('aviso-sin-conexion').classList.remove('hidden');
+                throw err;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
 
         function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
@@ -95,47 +117,20 @@
 
         }
 
-        async function verificarRecibosCaja() {
-            try {
-                const res = await fetch(`${API}/api/sistema/cola_recibos`);
-                const recibos = await res.json();
-                if (recibos && recibos.length > 0) {
-                    ejecutarImpresionReciboCaja(recibos[0]);
-                }
-            } catch (err) { console.error(err); }
-        }
-
-        function ejecutarImpresionReciboCaja(recibo) {
-            const zona = document.getElementById('zona-invisible-impresion');
-            zona.innerHTML = `
-                <div class="ticket-impresion text-center font-mono text-black" style="color: black !important; padding: 0 !important; margin: 0 !important; line-height: 1.1 !important;">
-                    <img src="resources/Tuka-ticket-nava.png" 
-                         style="width: 120px; height: auto; display: inline-block; margin: 0 auto 2px auto; padding: 0;
-                                -webkit-print-color-adjust: exact !important;
-                                print-color-adjust: exact !important;
-                                filter: contrast(200%) brightness(80%) grayscale(100%);">
-                    <p class="text-xs font-black border-b border-black pb-1 mb-1" style="margin-top: 2px !important; padding-top: 0 !important;">Insurgentes número 16, Tamazulapam Oax</p>
-                    <p class="text-xs font-black border-b border-black pb-1 mb-2">Tel. 953 212 4618</p>
-                    <div class="text-left border-b border-black pb-2 mb-2 font-black text-xs uppercase leading-relaxed">${recibo.html}</div>
-                </div>
-            `;
-            document.body.classList.add('overflow-hidden');
-            zona.classList.remove('hidden');
-            setTimeout(async () => {
-                window.print();
-                zona.classList.add('hidden');
-                document.body.classList.remove('overflow-hidden');
-                await fetch(`${API}/api/sistema/cola_recibos/${recibo.id}`, { method: 'DELETE' });
-            }, 350);
-        }
+        // Nota: el ticket de caja (cuenta total / cobro parcial / reimpresión) ya no se imprime
+        // desde aquí — ahora el servidor lo manda directo a la impresora térmica en cuanto se
+        // genera, con logo y acentos correctos. Por eso ya no hace falta sondear una cola cada
+        // 1.5s: una llamada menos de red compitiendo por el WiFi.
 
         async function consultarComandas() {
+            if (consultaEnCurso) return; // si la anterior sigue esperando respuesta, no lances otra encima
+            consultaEnCurso = true;
             try {
-                const resModo = await fetch(`${API}/api/sistema/modos_pantalla`);
+                const resModo = await fetchConTimeout(`${API}/api/sistema/modos_pantalla`);
                 const modos = await resModo.json();
                 modoOperacion = modos.barra;
 
-                const res = await fetch(`${API}/api/comandas/barra`);
+                const res = await fetchConTimeout(`${API}/api/comandas/barra`);
                 const comandas = await res.json();
 
                 if (modoOperacion === 'impresora' && comandas.length > 0) {
@@ -147,7 +142,11 @@
                     }
                 }
                 renderizarPantallaBarra(comandas);
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                consultaEnCurso = false;
+            }
         }
 
         function ejecutarImpresionTermica(c) {
@@ -272,7 +271,7 @@
         }
 
         async function marcarCompletada(id) {
-            await fetch(`${API}/api/comandas/completar`, {
+            await fetchConTimeout(`${API}/api/comandas/completar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id })
@@ -289,7 +288,7 @@
 
         async function cargarHistorial() {
             try {
-                const res = await fetch(`${API}/api/comandas_sistema/historial`);
+                const res = await fetchConTimeout(`${API}/api/comandas_sistema/historial`);
                 const datos = await res.json();
                 const deBarra = datos.filter(c => c.destinoCierre === 'barra');
 
@@ -330,8 +329,8 @@
         }
 
         async function recuperarComanda(id) {
-            if (confirm("¿Quieres regresar esta bebida al monitor de la Barra?")) {
-                const res = await fetch(`${API}/api/comandas/reabrir`, {
+            if (await Toast.confirm("¿Quieres regresar esta bebida al monitor de la Barra?")) {
+                const res = await fetchConTimeout(`${API}/api/comandas/reabrir`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: id })
@@ -344,13 +343,15 @@
         }
 
         async function purgarHistorialCompleto() {
-            if (confirm("¿Estás seguro de vaciar el historial de todas las comandas completadas? Esta acción limpiará la memoria tanto en Cocina como en Barra.")) {
-                await fetch(`${API}/api/comandas_sistema/purgar_historial`, { method: 'DELETE' });
+            if (await Toast.confirm("¿Estás seguro de vaciar el historial de todas las comandas completadas? Esta acción limpiará la memoria tanto en Cocina como en Barra.")) {
+                await fetchConTimeout(`${API}/api/comandas_sistema/purgar_historial`, { method: 'DELETE' });
                 cargarHistorial();
             }
         }
 
-        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 1000); setInterval(verificarRecibosCaja, 1500); };
+        // 2000ms en vez de 1000ms: menos tráfico de red con WiFi inestable. Ya no hace falta
+        // el segundo setInterval de recibos de caja (ver nota arriba: ahora imprime el servidor).
+        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 2000); };
     </script>
 </body>
 

@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mesero POS - Tukan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tailwind.css">
+    <script src="ui-notificaciones.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -16,6 +17,11 @@
 <body class="bg-gray-100 p-4 pb-20 no-scrollbar overflow-y-auto font-sans relative" onload="actualizarEstadoMesas()"
     style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="fixed inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+
+    <div id="aviso-sin-conexion" class="hidden fixed top-0 left-0 right-0 z-[200] bg-red-600 text-white text-center text-[11px] font-black uppercase tracking-widest py-2 shadow-lg">
+        ⚠️ Sin conexión con el servidor — revisa el WiFi. Reintentando...
+    </div>
+
     <div id="vista-mesas" class="relative z-10">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <h1 class="text-2xl font-black uppercase text-emerald-950 tracking-tighter">Bar El Tukan</h1>
@@ -24,6 +30,12 @@
                 <button onclick="crearPedidoLlevar()"
                     class="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm shadow-orange-500/10 whitespace-nowrap active:scale-95 transition-all">
                     🥡 Para Llevar
+                </button>
+                <button onclick="abrirHistorialTickets()"
+                    class="relative flex-1 sm:flex-none bg-slate-700 hover:bg-slate-800 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
+                    🧾 Tickets
+                    <span id="badge-tickets-fallidos"
+                        class="hidden absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border-2 border-white"></span>
                 </button>
                 <button onclick="gestionarMesas()"
                     class="flex-1 sm:flex-none bg-emerald-900 hover:bg-emerald-950 text-white px-3 py-2.5 rounded-xl text-[10px] font-black uppercase italic shadow-sm whitespace-nowrap active:scale-95 transition-all">
@@ -214,6 +226,32 @@
         </div>
     </div>
 
+    <div id="modal-historial-tickets"
+        class="hidden fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-white/95 backdrop-blur-md w-full max-w-md rounded-[2rem] p-6 max-h-[85vh] flex flex-col border border-slate-100 shadow-2xl">
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="text-lg font-black uppercase text-emerald-950">🧾 Historial de Tickets</h2>
+                <button onclick="document.getElementById('modal-historial-tickets').classList.add('hidden')"
+                    class="text-slate-400 hover:text-slate-700 text-2xl leading-none px-2">&times;</button>
+            </div>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4">Últimos tickets mandados a
+                imprimir. Si alguno falló, puedes reimprimirlo aquí.</p>
+
+            <div class="flex-1 overflow-y-auto no-scrollbar pr-1 mb-3 min-h-[120px]">
+                <div id="cargador-historial-tickets" class="text-center text-xs font-bold text-slate-400 py-8">
+                    Cargando historial...
+                </div>
+                <ul id="lista-historial-tickets" class="space-y-2"></ul>
+            </div>
+
+            <button onclick="cargarHistorialTickets()"
+                class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-black text-xs uppercase transition active:scale-95 shadow-md">
+                🔄 Actualizar
+            </button>
+        </div>
+    </div>
+
     <script src="config.js"></script>
     <script>
         let totalPersonasDividir = 1;
@@ -224,11 +262,54 @@
         let mesaSel = "", itemsEnDB = [], itemsNuevos = [], menuGlobal = [];
         let productoEnPersonalizacion = null;
 
+        // --- Ayudante de red: evita que un fetch se quede colgado para siempre con WiFi malo,
+        // y avisa al mesero cuando no hay conexión en vez de dejarlo esperando sin saber qué pasa.
+        async function fetchConTimeout(url, options = {}, timeoutMs = 8000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { ...options, signal: controller.signal });
+                ocultarAvisoSinConexion();
+                return res;
+            } catch (err) {
+                mostrarAvisoSinConexion();
+                if (err.name === 'AbortError') {
+                    throw new Error('Tiempo de espera agotado. Revisa tu conexión WiFi e inténtalo de nuevo.');
+                }
+                throw err;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        function mostrarAvisoSinConexion() {
+            const aviso = document.getElementById('aviso-sin-conexion');
+            if (aviso) aviso.classList.remove('hidden');
+        }
+        function ocultarAvisoSinConexion() {
+            const aviso = document.getElementById('aviso-sin-conexion');
+            if (aviso) aviso.classList.add('hidden');
+        }
+
+        // Reemplaza los antiguos location.reload(): regresa a la lista de mesas y refresca
+        // solo los datos, sin recargar toda la página (mucho más rápido con WiFi inestable).
+        function volverAVistaMesas() {
+            ['vista-menu', 'modal-cobrar', 'modal-confirmar', 'modal-liberar-parcial', 'modal-edicion-resumen', 'modal-historial-tickets'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            document.getElementById('vista-mesas').classList.remove('hidden');
+            mesaSel = "";
+            itemsEnDB = [];
+            itemsNuevos = [];
+            actualizarEstadoMesas();
+        }
+
         async function actualizarEstadoMesas() {
             try {
-                const resMesas = await fetch(`${API}/api/mesas`);
+                const resMesas = await fetchConTimeout(`${API}/api/mesas`);
                 const mesas = await resMesas.json();
-                const resActivas = await fetch(`${API}/mesas_activas`);
+                const resActivas = await fetchConTimeout(`${API}/mesas_activas`);
                 const activas = await resActivas.json();
 
                 const ocupadasFisicas = activas.filter(m => !m.toString().startsWith('PARA LLEVAR'));
@@ -254,7 +335,116 @@
                     </button>
                 `).join('');
                 }
+
+                actualizarBadgeTicketsFallidos();
             } catch (e) { console.error("Error de sincronización", e); }
+        }
+
+        // Se apoya en el mismo ciclo de refresco de la lista de mesas (cada pocos segundos)
+        // para avisar, sin que el mesero tenga que abrir el historial, si hay tickets que
+        // no lograron imprimirse.
+        async function actualizarBadgeTicketsFallidos() {
+            const badge = document.getElementById('badge-tickets-fallidos');
+            if (!badge) return;
+            try {
+                const res = await fetchConTimeout(`${API}/api/historial_impresiones?limite=30`);
+                const historial = await res.json();
+                const fallidos = historial.filter(t => !t.exitosa).length;
+                if (fallidos > 0) {
+                    badge.textContent = fallidos > 9 ? '9+' : fallidos;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } catch (e) { /* si falla esta revisión no es crítico, se reintenta en el próximo ciclo */ }
+        }
+
+        function abrirHistorialTickets() {
+            document.getElementById('modal-historial-tickets').classList.remove('hidden');
+            cargarHistorialTickets();
+        }
+
+        async function cargarHistorialTickets() {
+            const cargador = document.getElementById('cargador-historial-tickets');
+            const lista = document.getElementById('lista-historial-tickets');
+            cargador.classList.remove('hidden');
+            cargador.textContent = 'Cargando historial...';
+            lista.innerHTML = '';
+
+            try {
+                const res = await fetchConTimeout(`${API}/api/historial_impresiones?limite=40`);
+                const historial = await res.json();
+                cargador.classList.add('hidden');
+
+                if (historial.length === 0) {
+                    cargador.textContent = 'Todavía no hay tickets registrados.';
+                    cargador.classList.remove('hidden');
+                    return;
+                }
+
+                const ETIQUETAS_TIPO = {
+                    PARA_LLEVAR: '🥡 Para Llevar',
+                    COBRO_TOTAL: '💰 Cuenta Total',
+                    COBRO_PARCIAL: '💰 Cobro Parcial',
+                    REIMPRESION: '🔁 Reimpresión'
+                };
+
+                lista.innerHTML = historial.map(t => {
+                    const hora = new Date(t.fecha + 'Z').toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                    const etiqueta = ETIQUETAS_TIPO[t.tipo] || t.tipo;
+                    if (t.exitosa) {
+                        return `
+                        <li class="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2.5">
+                            <div class="min-w-0">
+                                <p class="text-xs font-black text-emerald-900">✅ ${etiqueta} · ${t.mesa}</p>
+                                <p class="text-[10px] text-emerald-700/60 font-bold">${hora}</p>
+                            </div>
+                            <button onclick="reimprimirTicket(${t.id}, this)"
+                                class="flex-shrink-0 bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-black uppercase px-3 py-2 rounded-lg active:scale-95 transition-all">
+                                Reimprimir
+                            </button>
+                        </li>`;
+                    }
+                    return `
+                        <li class="flex items-center justify-between gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                            <div class="min-w-0">
+                                <p class="text-xs font-black text-red-700">⚠️ ${etiqueta} · ${t.mesa}</p>
+                                <p class="text-[10px] text-red-500/70 font-bold truncate">${hora} — no se imprimió${t.error ? ': ' + t.error : ''}</p>
+                            </div>
+                            <button onclick="reimprimirTicket(${t.id}, this)"
+                                class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase px-3 py-2 rounded-lg active:scale-95 transition-all">
+                                Reimprimir
+
+                            </button>
+                        </li>`;
+                }).join('');
+            } catch (e) {
+                cargador.textContent = 'No se pudo cargar el historial. Verifica tu conexión con el servidor.';
+                cargador.classList.remove('hidden');
+            }
+        }
+
+        async function reimprimirTicket(id, btnEl) {
+            if (!await Toast.confirm('¿Seguro que quieres volver a imprimir este ticket?\n\nVa a salir una copia física nueva.', { textoAceptar: 'Sí, reimprimir' })) {
+                return;
+            }
+
+            btnEl.disabled = true;
+            btnEl.textContent = '⏳...';
+            try {
+                const res = await fetchConTimeout(`${API}/api/historial_impresiones/${id}/reimprimir`, { method: 'POST' }, 15000);
+                if (res.ok) {
+                    Toast.show('✅ Ticket reimpreso correctamente.');
+                } else {
+                    const d = await res.json();
+                    Toast.show('⚠️ Sigue sin salir: ' + (d.error || 'la impresora no respondió.'));
+                }
+            } catch (e) {
+                Toast.show('⚠️ ' + e.message);
+            } finally {
+                cargarHistorialTickets();
+                actualizarBadgeTicketsFallidos();
+            }
         }
 
         async function crearPedidoLlevar() {
@@ -272,9 +462,12 @@
         }
 
         async function gestionarMesas() {
-            const accion = prompt("1. Agregar Mesa\n2. Eliminar Mesa\nEscribe el número:");
-            if (accion === "1") {
-                const n = prompt("Introduce el identificador personalizado (Ej: SA1, P1, Patio2):");
+            const accion = await Toast.choice("¿Qué deseas hacer con las mesas?", [
+                { texto: '➕ Agregar Mesa', valor: 'agregar', tono: 'principal' },
+                { texto: '🗑️ Eliminar Mesa', valor: 'eliminar', tono: 'peligro' }
+            ]);
+            if (accion === 'agregar') {
+                const n = await Toast.prompt("Introduce el identificador personalizado (Ej: SA1, P1, Patio2):", { textoAceptar: 'Agregar', icono: '➕' });
                 if (n) {
                     await fetch(`${API}/api/mesas`, {
                         method: 'POST',
@@ -283,14 +476,14 @@
                     });
                     actualizarEstadoMesas();
                 }
-            } else if (accion === "2") {
-                const n = prompt("Identificador personalizado a borrar:");
+            } else if (accion === 'eliminar') {
+                const n = await Toast.prompt("Identificador personalizado a borrar:", { textoAceptar: 'Eliminar', icono: '🗑️' });
                 if (n) {
                     const numeroMesa = n.trim().toUpperCase();
                     const res = await fetch(`${API}/api/mesas/${encodeURIComponent(numeroMesa)}`, { method: 'DELETE' });
                     if (!res.ok) {
                         const err = await res.json();
-                        alert(err.error);
+                        Toast.show(err.error);
                     } else {
                         actualizarEstadoMesas();
                     }
@@ -551,7 +744,12 @@
         //     location.reload();
         // }
 
+        let envioComandaEnCurso = false; // evita que un doble toque en "Enviar" mande dos peticiones a la vez
+
         async function enviarComanda() {
+            if (envioComandaEnCurso) return; // ya hay un envío en curso, se ignora el toque repetido
+            envioComandaEnCurso = true;
+
             const zonaBotones = document.getElementById('contenedor-acciones-modal');
             const zonaCargador = document.getElementById('cargador-envio-modal');
 
@@ -574,27 +772,43 @@
             });
 
             try {
-                await fetch(`${API}/enviar_comanda`, {
+                await fetchConTimeout(`${API}/enviar_comanda`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mesa: mesaSel, items: itemsParaEnviar })
-                });
-                location.reload();
+                }, 12000);
+                volverAVistaMesas();
             } catch (error) {
                 console.error("Error al enviar", error);
-                alert("Hubo un problema con la red. Inténtalo de nuevo.");
+                Toast.show("⚠️ " + error.message + "\n\nNo vuelvas a tocar 'Enviar' sin verificar en Cocina/Barra si el pedido ya llegó, para no duplicarlo.");
 
                 if (zonaBotones && zonaCargador) {
                     zonaBotones.classList.remove('hidden');
                     zonaCargador.classList.add('hidden');
                 }
+            } finally {
+                envioComandaEnCurso = false;
             }
         }
 
 
 
-        function abrirFlujoCobro() {
-            if (itemsEnDB.length === 0) return alert("Esta mesa no tiene consumos registrados.");
+        async function abrirFlujoCobro() {
+            // Guardia clave: si el mesero está a la mitad de registrar una comanda (ya
+            // agregó productos pero aún no los manda a Cocina/Barra) y por error toca
+            // "Cobrar" en vez de "Enviar", NO lo dejamos entrar de golpe a la pantalla de
+            // cobro. Esos productos sin enviar no forman parte de la cuenta (solo se cobra
+            // lo que ya está en itemsEnDB), así que seguir de largo los perdería en
+            // silencio. Se le avisa y tiene que confirmar a propósito.
+            if (itemsNuevos.length > 0) {
+                const continuar = await Toast.confirm(
+                    `⚠️ Tienes ${itemsNuevos.length} producto(s) sin enviar todavía en esta mesa.\n\nSi cobras ahora, esos productos NO se van a cobrar y se perderán de este pedido.\n\n¿Seguro que quieres ir a Cobrar de todas formas?`,
+                    { textoCancelar: 'Volver y enviar', textoAceptar: 'Cobrar de todas formas', peligro: true }
+                );
+                if (!continuar) return;
+            }
+
+            if (itemsEnDB.length === 0) return Toast.show("Esta mesa no tiene consumos registrados.");
             document.getElementById('span-mesa-cobro').innerText = mesaSel;
             document.getElementById('chk-cuenta-separada').checked = false;
 
@@ -603,20 +817,20 @@
             itemsDisponiblesFlujo = [...itemsEnDB];
             subcuentasCalculadas = [];
 
-            toggleModoSeparado(false);
+            await toggleModoSeparado(false);
             document.getElementById('modal-cobrar').classList.remove('hidden');
         }
 
-        function toggleModoSeparado(esSeparada) {
+        async function toggleModoSeparado(esSeparada) {
             const contLista = document.getElementById('lista-checks-cobro');
             const btnCobro = document.getElementById('btn-ejecutar-cobro');
 
             if (esSeparada) {
-                const numInput = prompt("¿Entre cuántas personas se va a dividir la cuenta?", "2");
+                const numInput = await Toast.prompt("¿Entre cuántas personas se va a dividir la cuenta?", { valorPorDefecto: '2', numerico: true, textoAceptar: 'Continuar', icono: '🔢' });
                 const num = parseInt(numInput);
                 if (isNaN(num) || num < 2) {
                     document.getElementById('chk-cuenta-separada').checked = false;
-                    return alert("Por favor ingresa un número válido mayor o igual a 2.");
+                    return Toast.show("Por favor ingresa un número válido mayor o igual a 2.");
                 }
 
                 totalPersonasDividir = num;
@@ -665,7 +879,7 @@
 
         function avanzarPasoPersona(esUltimo) {
             const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
-            if (checks.length === 0) return alert(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
+            if (checks.length === 0) return Toast.show(`Por favor, selecciona al menos un artículo para la persona #${personaActualFlujo}`);
 
             const idsSeleccionados = Array.from(checks).map(c => parseInt(c.value));
             const itemsPersona = itemsDisponiblesFlujo.filter(item => idsSeleccionados.includes(item.id));
@@ -694,7 +908,7 @@
                 iniciarPasoPersona();
             } else {
                 if (itemsDisponiblesFlujo.length > 0) {
-                    alert(`¡Atención! Quedaron ${itemsDisponiblesFlujo.length} productos sin asignar a ninguna cuenta. Se sumarán a la última persona de forma automática.`);
+                    Toast.show(`¡Atención! Quedaron ${itemsDisponiblesFlujo.length} productos sin asignar a ninguna cuenta. Se sumarán a la última persona de forma automática.`);
                     let extraTotal = 0;
                     itemsDisponiblesFlujo.forEach(item => {
                         const prodMenu = menuGlobal.find(p => p.nombre === item.itemBase);
@@ -737,55 +951,98 @@
             }).join('');
         }
 
+        let cobroEnCurso = false; // evita doble toque en "Cobrar" mientras se procesa el pago/impresión
+
+        function fijarBotonCobroCargando(cargando) {
+            const btn = document.getElementById('btn-ejecutar-cobro');
+            if (!btn) return;
+            if (cargando) {
+                if (btn.dataset.textoOriginal === undefined) btn.dataset.textoOriginal = btn.innerText;
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+                btn.innerText = '⏳ Procesando cobro...';
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                if (btn.dataset.textoOriginal !== undefined) btn.innerText = btn.dataset.textoOriginal;
+            }
+        }
+
         async function ejecutarCobroCompleto() {
-            if (confirm(`¿Mandar a imprimir la cuenta total de la mesa ${mesaSel}?`)) {
-                const res = await fetch(`${API}/cerrar_cuenta`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mesa: mesaSel })
-                });
-                const d = await res.json();
-                alert("Recibo de Cuenta Total por: $" + d.total.toFixed(2));
-                location.reload();
+            if (cobroEnCurso) return; // ya hay un cobro en curso, se ignora el toque repetido
+            if (await Toast.confirm(`¿Mandar a imprimir la cuenta total de la mesa ${mesaSel}?`)) {
+                cobroEnCurso = true;
+                fijarBotonCobroCargando(true);
+                try {
+                    const res = await fetchConTimeout(`${API}/cerrar_cuenta`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mesa: mesaSel })
+                    }, 15000);
+                    const d = await res.json();
+                    Toast.show("Recibo de Cuenta Total por: $" + d.total.toFixed(2));
+                    volverAVistaMesas();
+                } catch (error) {
+                    Toast.show("⚠️ " + error.message + "\n\nVerifica si el ticket sí se imprimió antes de volver a intentar.");
+                } finally {
+                    cobroEnCurso = false;
+                    fijarBotonCobroCargando(false);
+                }
             }
         }
 
         async function procesarCobroParcialFinalMasivo() {
-            if (!confirm("¿Confirmas que los desgloses son correctos?")) return;
+            if (cobroEnCurso) return;
+            if (!await Toast.confirm("¿Confirmas que los desgloses son correctos?")) return;
 
+            cobroEnCurso = true;
+            fijarBotonCobroCargando(true);
             try {
                 for (let sc of subcuentasCalculadas) {
-                    await fetch(`${API}/api/cobrar_parcial`, {
+                    await fetchConTimeout(`${API}/api/cobrar_parcial`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ mesa: mesaSel, itemsACobrar: sc.items })
-                    });
+                    }, 15000);
                 }
 
-                alert("Recibos de cuentas parciales generados exitosamente.");
-                location.reload();
+                Toast.show("Recibos de cuentas parciales generados exitosamente.");
+                volverAVistaMesas();
             } catch (err) {
-                alert("Ocurrió un error al procesar el recibo.");
+                Toast.show("⚠️ " + err.message);
+            } finally {
+                cobroEnCurso = false;
+                fijarBotonCobroCargando(false);
             }
         }
 
         async function procesarCobroFinal() {
+            if (cobroEnCurso) return;
             const esSeparada = document.getElementById('chk-cuenta-separada').checked;
 
             if (!esSeparada) {
-                if (confirm(`¿Mandar a imprimir la cuenta total de la mesa ${mesaSel}?`)) {
-                    const res = await fetch(`${API}/cerrar_cuenta`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mesa: mesaSel })
-                    });
-                    const d = await res.json();
-                    alert("Recibo de Cuenta Total por: $" + d.total.toFixed(2));
-                    location.reload();
+                if (await Toast.confirm(`¿Mandar a imprimir la cuenta total de la mesa ${mesaSel}?`)) {
+                    cobroEnCurso = true;
+                    fijarBotonCobroCargando(true);
+                    try {
+                        const res = await fetchConTimeout(`${API}/cerrar_cuenta`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ mesa: mesaSel })
+                        }, 15000);
+                        const d = await res.json();
+                        Toast.show("Recibo de Cuenta Total por: $" + d.total.toFixed(2));
+                        volverAVistaMesas();
+                    } catch (error) {
+                        Toast.show("⚠️ " + error.message + "\n\nVerifica si el ticket sí se imprimió antes de volver a intentar.");
+                    } finally {
+                        cobroEnCurso = false;
+                        fijarBotonCobroCargando(false);
+                    }
                 }
             } else {
                 const checks = document.querySelectorAll('input[name="item-cobro-check"]:checked');
-                if (checks.length === 0) return alert("Por favor, selecciona al menos un artículo para cobrar.");
+                if (checks.length === 0) return Toast.show("Por favor, selecciona al menos un artículo para cobrar.");
 
                 const itemsACobrar = [];
                 checks.forEach(c => {
@@ -794,18 +1051,27 @@
                     if (objetoDb) itemsACobrar.push(objetoDb);
                 });
 
-                if (confirm(`¿Procesar el cobro de los ${itemsACobrar.length} artículos seleccionados?`)) {
-                    const res = await fetch(`${API}/api/cobrar_parcial`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mesa: mesaSel, itemsACobrar: itemsACobrar })
-                    });
+                if (await Toast.confirm(`¿Procesar el cobro de los ${itemsACobrar.length} artículos seleccionados?`)) {
+                    cobroEnCurso = true;
+                    fijarBotonCobroCargando(true);
+                    try {
+                        const res = await fetchConTimeout(`${API}/api/cobrar_parcial`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ mesa: mesaSel, itemsACobrar: itemsACobrar })
+                        }, 15000);
 
-                    if (res.ok) {
-                        const d = await res.json();
-                        alert("PARTE LIQUIDADA CON ÉXITO: $" + d.total.toFixed(2));
-                        location.reload();
-                    } else { alert("Ocurrió un fallo al procesar el cobro parcial."); }
+                        if (res.ok) {
+                            const d = await res.json();
+                            Toast.show("PARTE LIQUIDADA CON ÉXITO: $" + d.total.toFixed(2));
+                            volverAVistaMesas();
+                        } else { Toast.show("Ocurrió un fallo al procesar el cobro parcial."); }
+                    } catch (error) {
+                        Toast.show("⚠️ " + error.message);
+                    } finally {
+                        cobroEnCurso = false;
+                        fijarBotonCobroCargando(false);
+                    }
                 }
             }
         }
@@ -813,10 +1079,10 @@
         async function solicitarCancelacionItem(itemJson) {
             const item = JSON.parse(itemJson.replace(/&quot;/g, '"'));
 
-            const confirmarProduccion = confirm(`⚠️ CONTROL DE SEGURIDAD:\n¿Ya verificaste en Cocina/Barra que el producto "${item.producto.toUpperCase()}" NO se esté preparando actualmente?`);
+            const confirmarProduccion = await Toast.confirm(`⚠️ CONTROL DE SEGURIDAD:\n¿Ya verificaste en Cocina/Barra que el producto "${item.producto.toUpperCase()}" NO se esté preparando actualmente?`);
             if (!confirmarProduccion) return;
 
-            const pinIngresado = prompt("Introduce el PIN de Gerencia para autorizar la eliminación:");
+            const pinIngresado = await Toast.prompt("Introduce el PIN de Gerencia para autorizar la eliminación:", { tipo: 'password', numerico: true, textoAceptar: 'Verificar', icono: '🔒' });
             if (!pinIngresado) return;
 
             try {
@@ -828,7 +1094,7 @@
                 const dataPin = await resPin.json();
 
                 if (!dataPin.valido) {
-                    return alert("❌ PIN incorrecto. Operación rechazada.");
+                    return Toast.show("❌ PIN incorrecto. Operación rechazada.");
                 }
 
                 const resCancelacion = await fetch(`${API}/api/pedidos/cancelar_item`, {
@@ -844,7 +1110,7 @@
                 });
 
                 if (resCancelacion.ok) {
-                    alert(`✅ "${item.producto.toUpperCase()}" eliminado exitosamente de la cuenta y pantallas de producción.`);
+                    Toast.show(`✅ "${item.producto.toUpperCase()}" eliminado exitosamente de la cuenta y pantallas de producción.`);
 
                     const resCuenta = await fetch(`${API}/cuenta/${mesaSel}`);
                     itemsEnDB = await resCuenta.json();
@@ -853,11 +1119,11 @@
 
                     abrirModalEdicionResumen();
                 } else {
-                    alert("Error al intentar remover el artículo del servidor.");
+                    Toast.show("Error al intentar remover el artículo del servidor.");
                 }
             } catch (err) {
                 console.error("Error en flujo de cancelación:", err);
-                alert("Ocurrió un fallo de conexión.");
+                Toast.show("Ocurrió un fallo de conexión.");
             }
         }
 
@@ -865,7 +1131,7 @@
             const contenedorLista = document.getElementById('lista-desglosada-edicion');
 
             if (itemsEnDB.length === 0) {
-                alert("Esta mesa no tiene consumos enviados por modificar.");
+                Toast.show("Esta mesa no tiene consumos enviados por modificar.");
                 return;
             }
 
@@ -900,7 +1166,7 @@
             document.getElementById('modal-edicion-resumen').classList.add('hidden');
         }
         function abrirModalLiberarParcial() {
-            if (itemsEnDB.length === 0) return alert("Esta mesa no tiene consumos enviados todavía por liquidar.");
+            if (itemsEnDB.length === 0) return Toast.show("Esta mesa no tiene consumos enviados todavía por liquidar.");
 
             document.getElementById('span-mesa-liberar').innerText = mesaSel;
             const contLista = document.getElementById('lista-checks-liberar');
@@ -926,12 +1192,12 @@
 
         async function ejecutarLiberacionParcialFinal() {
             const checks = document.querySelectorAll('input[name="check-liberar-item"]:checked');
-            if (checks.length === 0) return alert("Por favor, selecciona al menos un artículo para procesar el pago anticipado.");
+            if (checks.length === 0) return Toast.show("Por favor, selecciona al menos un artículo para procesar el pago anticipado.");
 
             const idsSeleccionados = Array.from(checks).map(c => parseInt(c.value));
             const itemsACobrar = itemsEnDB.filter(item => idsSeleccionados.includes(item.id));
 
-            if (!confirm(`¿Confirmas procesar el pago individual de estos ${itemsACobrar.length} artículos? Esto imprimirá su ticket y los removerá de la mesa activa.`)) return;
+            if (!await Toast.confirm(`¿Confirmas procesar el pago individual de estos ${itemsACobrar.length} artículos? Esto imprimirá su ticket y los removerá de la mesa activa.`)) return;
 
             try {
                 const res = await fetch(`${API}/api/cobrar_parcial`, {
@@ -942,7 +1208,7 @@
 
                 if (res.ok) {
                     const data = await res.json();
-                    alert(`✅ Pago parcial asentado con éxito por: $${data.total.toFixed(2)}\nEl recibo se ha enviado a la barra.`);
+                    Toast.show(`✅ Pago parcial asentado con éxito por: $${data.total.toFixed(2)}\nEl recibo se ha enviado a la barra.`);
 
                     document.getElementById('modal-liberar-parcial').classList.add('hidden');
 
@@ -950,7 +1216,7 @@
                     itemsEnDB = await resCuenta.json();
 
                     if (itemsEnDB.length === 0) {
-                        alert("La mesa ha quedado sin artículos pendientes y se ha liberado.");
+                        Toast.show("La mesa ha quedado sin artículos pendientes y se ha liberado.");
                         document.getElementById('vista-menu').classList.add('hidden');
                         document.getElementById('vista-mesas').classList.remove('hidden');
                         actualizarEstadoMesas();
@@ -958,11 +1224,11 @@
                         actualizarResumen();
                     }
                 } else {
-                    alert("No se pudo procesar el cobro individual en el servidor.");
+                    Toast.show("No se pudo procesar el cobro individual en el servidor.");
                 }
             } catch (err) {
                 console.error(err);
-                alert("Fallo crítico de comunicación con el sistema central.");
+                Toast.show("Fallo crítico de comunicación con el sistema central.");
             }
         }
 

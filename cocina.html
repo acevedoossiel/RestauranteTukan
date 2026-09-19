@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Cocina - Tukan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tailwind.css">
+    <script src="ui-notificaciones.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -44,6 +45,10 @@
 <body class="w-full h-screen flex flex-col overflow-hidden font-sans relative"
     style="background-image: url('resources/tukan-fondo.png'); background-size: 300px; background-repeat: repeat;">
     <div class="absolute inset-0 bg-white/90 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+    <div id="aviso-sin-conexion" class="hidden no-print fixed top-0 left-0 right-0 z-[200] bg-red-600 text-white text-center text-xs font-black uppercase tracking-widest py-2 shadow-lg">
+        ⚠️ Sin conexión con el servidor — reintentando...
+    </div>
+
     <div class="relative z-10 w-full h-full flex flex-col p-4 md:p-6 overflow-y-auto no-scrollbar pb-32">
         <header
             class="no-print flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-slate-200/80 pb-4">
@@ -79,6 +84,22 @@
         let modoOperacion = localStorage.getItem('modo_cocina') || 'impresora';
         let idsComandasProcesadas = new Set();
         let checkboxesMarcadosCocina = new Set();
+        let consultaEnCurso = false; // evita que se acumulen peticiones si el WiFi va lento
+
+        async function fetchConTimeout(url, options = {}, timeoutMs = 5000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { ...options, signal: controller.signal });
+                document.getElementById('aviso-sin-conexion').classList.add('hidden');
+                return res;
+            } catch (err) {
+                document.getElementById('aviso-sin-conexion').classList.remove('hidden');
+                throw err;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
 
         function cambiarModoTrabajo(modo) {
             modoOperacion = modo;
@@ -90,12 +111,14 @@
         }
 
         async function consultarComandas() {
+            if (consultaEnCurso) return; // si la anterior sigue esperando respuesta, no lances otra encima
+            consultaEnCurso = true;
             try {
-                const resModo = await fetch(`${API}/api/sistema/modos_pantalla`);
+                const resModo = await fetchConTimeout(`${API}/api/sistema/modos_pantalla`);
                 const modos = await resModo.json();
                 modoOperacion = modos.cocina;
 
-                const res = await fetch(`${API}/api/comandas/cocina`);
+                const res = await fetchConTimeout(`${API}/api/comandas/cocina`);
                 const comandas = await res.json();
 
                 if (modoOperacion === 'impresora' && comandas.length > 0) {
@@ -107,7 +130,11 @@
                     }
                 }
                 renderizarPantallaTablet(comandas);
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                consultaEnCurso = false;
+            }
         }
 
         function ejecutarImpresionTermica(c) {
@@ -234,7 +261,7 @@
         }
 
         async function marcarCompletada(id) {
-            await fetch(`${API}/api/comandas/completar`, {
+            await fetchConTimeout(`${API}/api/comandas/completar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id })
@@ -251,7 +278,7 @@
 
         async function cargarHistorial() {
             try {
-                const res = await fetch(`${API}/api/comandas_sistema/historial`);
+                const res = await fetchConTimeout(`${API}/api/comandas_sistema/historial`);
                 const datos = await res.json();
                 const deCocina = datos.filter(c => c.destinoCierre === 'cocina');
 
@@ -292,8 +319,8 @@
         }
 
         async function recuperarComanda(id) {
-            if (confirm("¿Quieres regresar esta comanda al monitor activo? Conservará su hora original de creación.")) {
-                const res = await fetch(`${API}/api/comandas/reabrir`, {
+            if (await Toast.confirm("¿Quieres regresar esta comanda al monitor activo? Conservará su hora original de creación.")) {
+                const res = await fetchConTimeout(`${API}/api/comandas/reabrir`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: id })
@@ -306,13 +333,15 @@
         }
 
         async function purgarHistorialCompleto() {
-            if (confirm("¿Estás seguro de vaciar el historial de todas las comandas completadas? Esta acción limpiará la memoria tanto en Cocina como en Barra.")) {
-                await fetch(`${API}/api/comandas_sistema/purgar_historial`, { method: 'DELETE' });
+            if (await Toast.confirm("¿Estás seguro de vaciar el historial de todas las comandas completadas? Esta acción limpiará la memoria tanto en Cocina como en Barra.")) {
+                await fetchConTimeout(`${API}/api/comandas_sistema/purgar_historial`, { method: 'DELETE' });
                 cargarHistorial();
             }
         }
 
-        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 1000); };
+        // 2000ms en vez de 1000ms: sigue sintiéndose instantáneo para cocina pero genera la mitad
+        // de tráfico de red, lo cual ayuda mucho cuando el WiFi es inestable.
+        window.onload = () => { cambiarModoTrabajo(modoOperacion); consultarComandas(); setInterval(consultarComandas, 2000); };
     </script>
 </body>
 
