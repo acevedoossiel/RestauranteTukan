@@ -91,33 +91,74 @@ let db;
 //     }
 // }
 
+// async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
+//     try {
+//         const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
+//             ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+//             : 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+
+//         const opciones = {
+//             width: '80mm',
+//             margin: { top: '2mm', bottom: '2mm', left: '2mm', right: '2mm' },
+//             puppeteerArgs: {
+//                 executablePath: chromePath,
+//                 args: ['--no-sandbox', '--disable-setuid-sandbox']
+//             }
+//         };
+//         const archivo = { content: htmlContent };
+//         const pdfBuffer = await htmlPdf.generatePdf(archivo, opciones);
+        
+//         const tempPath = path.join(os.tmpdir(), `ticket_${Date.now()}_${Math.random().toString(36).substring(7)}.pdf`);
+//         fs.writeFileSync(tempPath, pdfBuffer);
+
+//         await ptp.print(tempPath, { printer: nombreImpresora });
+        
+//         setTimeout(() => {
+//             if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+//         }, 15000);
+//     } catch (err) {
+//         console.error(`❌ Error al imprimir en ${nombreImpresora}:`, err.message);
+//     }
+// }
+
 async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
     try {
+        const idUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const htmlTemp = path.join(os.tmpdir(), `ticket_${idUnico}.html`);
+        const pdfTemp = path.join(os.tmpdir(), `ticket_${idUnico}.pdf`);
+
+        // Estilos base para asegurar ancho de 80mm
+        const htmlFinal = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>@page{size:80mm auto;margin:2mm;}body{width:80mm;margin:0;padding:0;font-family:monospace;}</style></head><body>${htmlContent}</body></html>`;
+        fs.writeFileSync(htmlTemp, htmlFinal, 'utf8');
+
+        // Detectar ejecutable de Chrome en Windows
         const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
-            ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-            : 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+            ? '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
+            : '"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"';
 
-        const opciones = {
-            width: '80mm',
-            margin: { top: '2mm', bottom: '2mm', left: '2mm', right: '2mm' },
-            puppeteerArgs: {
-                executablePath: chromePath,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+        // Comando directo de Chrome Headless a PDF
+        const comando = `${chromePath} --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf="${pdfTemp}" "${htmlTemp}"`;
+
+        exec(comando, async (error) => {
+            if (error) {
+                console.error(`❌ Error generando PDF para ${nombreImpresora}:`, error.message);
+                return;
             }
-        };
-        const archivo = { content: htmlContent };
-        const pdfBuffer = await htmlPdf.generatePdf(archivo, opciones);
-        
-        const tempPath = path.join(os.tmpdir(), `ticket_${Date.now()}_${Math.random().toString(36).substring(7)}.pdf`);
-        fs.writeFileSync(tempPath, pdfBuffer);
 
-        await ptp.print(tempPath, { printer: nombreImpresora });
-        
-        setTimeout(() => {
-            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-        }, 15000);
+            try {
+                await ptp.print(pdfTemp, { printer: nombreImpresora });
+            } catch (errPrint) {
+                console.error(`❌ Error enviando a impresora ${nombreImpresora}:`, errPrint.message);
+            }
+
+            // Limpieza de temporales
+            setTimeout(() => {
+                if (fs.existsSync(htmlTemp)) fs.unlinkSync(htmlTemp);
+                if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
+            }, 10000);
+        });
     } catch (err) {
-        console.error(`❌ Error al imprimir en ${nombreImpresora}:`, err.message);
+        console.error(`❌ Error general en ${nombreImpresora}:`, err.message);
     }
 }
 
