@@ -556,7 +556,7 @@ app.post('/api/cobrar_parcial', async (req, res) => {
             <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.1;">
                 ${logoBase64 ? `<img src="${logoBase64}" style="width: 120px; height: auto; margin-bottom: 4px;">` : ''}
                 <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
-                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 212 4618</p>
+                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
                 <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${avisoTicket}</div>
             </div>
         `;
@@ -646,7 +646,7 @@ app.post('/cerrar_cuenta', async (req, res) => {
             <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.1;">
                 ${logoBase64 ? `<img src="${logoBase64}" style="width: 120px; height: auto; margin-bottom: 4px;">` : ''}
                 <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
-                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 212 4618</p>
+                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
                 <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${ticketHtmlCompleto}</div>
             </div>
         `;
