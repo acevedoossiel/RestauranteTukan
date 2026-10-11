@@ -62,9 +62,37 @@ let db;
 //     }
 // }
 
+// async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
+//     try {
+//         // Rutas habituales de Google Chrome en Windows
+//         const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
+//             ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+//             : 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+
+//         const opciones = {
+//             width: '80mm',
+//             margin: { top: '2mm', bottom: '2mm', left: '2mm', right: '2mm' },
+//             args: ['--no-sandbox', '--disable-setuid-sandbox'],
+//             executablePath: chromePath
+//         };
+//         const archivo = { content: htmlContent };
+//         const pdfBuffer = await htmlPdf.generatePdf(archivo, opciones);
+        
+//         const tempPath = path.join(os.tmpdir(), `ticket_${Date.now()}_${Math.random().toString(36).substring(7)}.pdf`);
+//         fs.writeFileSync(tempPath, pdfBuffer);
+
+//         await ptp.print(tempPath, { printer: nombreImpresora });
+        
+//         setTimeout(() => {
+//             if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+//         }, 15000);
+//     } catch (err) {
+//         console.error(`❌ Error al imprimir en ${nombreImpresora}:`, err.message);
+//     }
+// }
+
 async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
     try {
-        // Rutas habituales de Google Chrome en Windows
         const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
             ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
             : 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
@@ -72,8 +100,10 @@ async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
         const opciones = {
             width: '80mm',
             margin: { top: '2mm', bottom: '2mm', left: '2mm', right: '2mm' },
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            executablePath: chromePath
+            puppeteerArgs: {
+                executablePath: chromePath,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            }
         };
         const archivo = { content: htmlContent };
         const pdfBuffer = await htmlPdf.generatePdf(archivo, opciones);
