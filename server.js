@@ -565,7 +565,7 @@ app.post('/api/cobrar_parcial', async (req, res) => {
                 ${logoBase64 ? `<img src="${logoBase64}" style="width: 170px; height: auto; margin: 0 auto 6px auto; display: block;">` : ''}
                 <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
                 <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
-                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 16px; line-height: 1.3; text-transform: uppercase;">${avisoTicket}</div>
+                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 14px; line-height: 1.3; text-transform: uppercase;">${avisoTicket}</div>
             </div>
         `;
         imprimirTicketSilencioso(reciboHtmlImpresion, 'BARRA');
@@ -663,7 +663,7 @@ app.post('/cerrar_cuenta', async (req, res) => {
                 ${logoBase64 ? `<img src="${logoBase64}" style="width: 170px; height: auto; margin: 0 auto 6px auto; display: block;">` : ''}
                 <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
                 <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
-                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 16px; line-height: 1.3; text-transform: uppercase;">${ticketHtmlCompleto}</div>
+                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 14px; line-height: 1.3; text-transform: uppercase;">${ticketHtmlCompleto}</div>
             </div>
         `;
         imprimirTicketSilencioso(reciboHtmlImpresion, 'BARRA');
