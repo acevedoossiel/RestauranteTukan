@@ -6,6 +6,9 @@ const sqlite3 = require('sqlite3');
 const os = require('os');
 const fs = require('fs');
 const { exec } = require('child_process');
+const path = require('path');
+const ptp = require('pdf-to-printer');
+const htmlPdf = require('html-pdf-node');
 
 const app = express();
 app.use(cors());
@@ -35,6 +38,29 @@ console.log(` BARRA DEBEN CONECTARSE A: http://${ipLocalReal}:3000/barra.html`);
 console.log("=========================================================\n");
 
 let db;
+
+async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
+    try {
+        const opciones = {
+            width: '80mm',
+            margin: { top: '2mm', bottom: '2mm', left: '2mm', right: '2mm' }
+        };
+        const archivo = { content: htmlContent };
+        const pdfBuffer = await htmlPdf.generatePdf(archivo, opciones);
+        
+        const tempPath = path.join(os.tmpdir(), `ticket_${Date.now()}_${Math.random().toString(36).substring(7)}.pdf`);
+        fs.writeFileSync(tempPath, pdfBuffer);
+
+        await ptp.print(tempPath, { printer: nombreImpresora });
+        
+        // Limpieza de archivo temporal
+        setTimeout(() => {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        }, 15000);
+    } catch (err) {
+        console.error(`❌ Error al imprimir en ${nombreImpresora}:`, err.message);
+    }
+}
 
 let comandasCocinaActivas = [];
 let comandasBarraActivas = [];
@@ -233,6 +259,51 @@ app.post('/enviar_comanda', async (req, res) => {
 
         await db.run('COMMIT');
 
+        // 🖨️ Impresión Silenciosa por Backend
+        const modoCocinaVal = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_cocina'");
+        const modoBarraVal = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_barra'");
+
+        if (elementosCocina.length > 0 && modoCocinaVal && modoCocinaVal.valor === 'impresora') {
+            const itemsHtmlCocina = elementosCocina.map(i => {
+                const mods = JSON.parse(i.modificadores || '[]');
+                let sub = mods.map(m => `  + ${m.nombre}`).join('<br>');
+                if (i.nota) sub += (sub ? '<br>' : '') + `  * NOTA: ${i.nota}`;
+                return `<div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">x1 ${i.display}</div>` +
+                       (sub ? `<div style="font-size: 11px; margin-left: 12px; margin-bottom: 4px;">${sub}</div>` : '');
+            }).join('<br>');
+
+            const htmlCocina = `
+                <div style="font-family: monospace; text-align: center; color: black; width: 100%;">
+                    <p style="font-weight: bold; border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 6px;">*** COMANDA COCINA ***</p>
+                    <p style="font-size: 18px; font-weight: bold; text-transform: uppercase; margin: 4px 0;">${mesa}</p>
+                    <p style="font-size: 11px; margin-bottom: 10px;">${new Date().toLocaleDateString('es-MX')} | ${horaActual}</p>
+                    <div style="text-align: left; font-size: 12px; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px;">${itemsHtmlCocina}</div>
+                    <p style="font-size: 9px; color: #555;">--- SISTEMA TUKAN POS ---</p>
+                </div>
+            `;
+            imprimirTicketSilencioso(htmlCocina, 'TUKAN_COCINA');
+        }
+
+        if (elementosBarra.length > 0 && modoBarraVal && modoBarraVal.valor === 'impresora') {
+            const itemsHtmlBarra = elementosBarra.map(i => {
+                const mods = JSON.parse(i.modificadores || '[]');
+                let sub = mods.map(m => `  + ${m.nombre}`).join('<br>');
+                if (i.nota) sub += (sub ? '<br>' : '') + `  * NOTA: ${i.nota}`;
+                return `<div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">x1 ${i.display}</div>` +
+                       (sub ? `<div style="font-size: 11px; margin-left: 12px; margin-bottom: 4px;">${sub}</div>` : '');
+            }).join('<br>');
+
+            const htmlBarra = `
+                <div style="font-family: monospace; text-align: center; color: black; width: 100%;">
+                    <p style="font-weight: bold; border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 6px;">*** COMANDA BARRA ***</p>
+                    <p style="font-size: 18px; font-weight: bold; text-transform: uppercase; margin: 4px 0;">${mesa}</p>
+                    <p style="font-size: 11px; margin-bottom: 10px;">${new Date().toLocaleDateString('es-MX')} | ${horaActual}</p>
+                    <div style="text-align: left; font-size: 12px; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px;">${itemsHtmlBarra}</div>
+                </div>
+            `;
+            imprimirTicketSilencioso(htmlBarra, 'TUKAN_BARRA');
+        }
+
         res.json({ status: "ok" });
     } catch (e) {
         await db.run('ROLLBACK');
@@ -430,6 +501,19 @@ app.post('/api/cobrar_parcial', async (req, res) => {
             html: avisoTicket
         });
 
+        const rutaLogo = path.join(__dirname, 'resources', 'tukan-logo-ticket.png');
+        const logoBase64 = fs.existsSync(rutaLogo) ? `data:image/png;base64,${fs.readFileSync(rutaLogo).toString('base64')}` : '';
+
+        const reciboHtmlImpresion = `
+            <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.1;">
+                ${logoBase64 ? `<img src="${logoBase64}" style="width: 120px; height: auto; margin-bottom: 4px;">` : ''}
+                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
+                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 212 4618</p>
+                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${avisoTicket}</div>
+            </div>
+        `;
+        imprimirTicketSilencioso(reciboHtmlImpresion, 'TUKAN_BARRA');
+
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)',
             [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
         );
@@ -506,6 +590,19 @@ app.post('/cerrar_cuenta', async (req, res) => {
             tipo: "CUENTA TOTAL",
             html: ticketHtmlCompleto
         });
+
+        const rutaLogo = path.join(__dirname, 'resources', 'tukan-logo-ticket.png');
+        const logoBase64 = fs.existsSync(rutaLogo) ? `data:image/png;base64,${fs.readFileSync(rutaLogo).toString('base64')}` : '';
+
+        const reciboHtmlImpresion = `
+            <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.1;">
+                ${logoBase64 ? `<img src="${logoBase64}" style="width: 120px; height: auto; margin-bottom: 4px;">` : ''}
+                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
+                <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 212 4618</p>
+                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${ticketHtmlCompleto}</div>
+            </div>
+        `;
+        imprimirTicketSilencioso(reciboHtmlImpresion, 'TUKAN_BARRA');
 
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
         await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);

@@ -98,11 +98,19 @@
                 const res = await fetch(`${API}/api/comandas/cocina`);
                 const comandas = await res.json();
 
+                // if (modoOperacion === 'impresora' && comandas.length > 0) {
+                //     for (let c of comandas) {
+                //         if (!idsComandasProcesadas.has(c.id)) {
+                //             idsComandasProcesadas.add(c.id);
+                //             ejecutarImpresionTermica(c);
+                //         }
+                //     }
+                // }
                 if (modoOperacion === 'impresora' && comandas.length > 0) {
                     for (let c of comandas) {
                         if (!idsComandasProcesadas.has(c.id)) {
                             idsComandasProcesadas.add(c.id);
-                            ejecutarImpresionTermica(c);
+                            marcarCompletada(c.id); // Solo marca completada en BD silenciosamente
                         }
                     }
                 }
