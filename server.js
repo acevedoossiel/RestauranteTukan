@@ -57,7 +57,7 @@ async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
     }
     body {
         width: 72mm;
-        margin-top: -8mm !important;
+        margin-top: 0mm !important;
         padding: 0 2px !important;
         font-family: monospace;
         font-size: 20px;
