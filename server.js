@@ -52,7 +52,7 @@ async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
 <meta charset="UTF-8">
 <style>
     @page { 
-        size: 80mm auto; 
+        size: 80mm 120mm; 
         margin: 0 !important;; 
     }
     body {
@@ -94,7 +94,8 @@ async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
             try {
                 // Envía el PDF directamente al driver de la impresora térmica
                 await ptp.print(pdfTemp, {
-                    printer: nombreImpresora
+                    printer: nombreImpresora,
+                    scale: "noscale"
                 });
             } catch (errPrint) {
                 console.error(`❌ Error enviando a ${nombreImpresora}:`, errPrint.message);
