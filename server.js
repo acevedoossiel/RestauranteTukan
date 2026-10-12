@@ -281,7 +281,7 @@ app.post('/enviar_comanda', async (req, res) => {
                     <p style="font-size: 9px; color: #555;">--- SISTEMA TUKAN POS ---</p>
                 </div>
             `;
-            imprimirTicketSilencioso(htmlCocina, 'TUKAN_COCINA');
+            imprimirTicketSilencioso(htmlCocina, 'COCINA');
         }
 
         if (elementosBarra.length > 0 && modoBarraVal && modoBarraVal.valor === 'impresora') {
@@ -301,7 +301,7 @@ app.post('/enviar_comanda', async (req, res) => {
                     <div style="text-align: left; font-size: 12px; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px;">${itemsHtmlBarra}</div>
                 </div>
             `;
-            imprimirTicketSilencioso(htmlBarra, 'TUKAN_BARRA');
+            imprimirTicketSilencioso(htmlBarra, 'BARRA');
         }
 
         res.json({ status: "ok" });
@@ -512,7 +512,7 @@ app.post('/api/cobrar_parcial', async (req, res) => {
                 <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${avisoTicket}</div>
             </div>
         `;
-        imprimirTicketSilencioso(reciboHtmlImpresion, 'TUKAN_BARRA');
+        imprimirTicketSilencioso(reciboHtmlImpresion, 'BARRA');
 
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)',
             [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
@@ -602,7 +602,7 @@ app.post('/cerrar_cuenta', async (req, res) => {
                 <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${ticketHtmlCompleto}</div>
             </div>
         `;
-        imprimirTicketSilencioso(reciboHtmlImpresion, 'TUKAN_BARRA');
+        imprimirTicketSilencioso(reciboHtmlImpresion, 'BARRA');
 
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
         await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);
