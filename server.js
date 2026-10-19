@@ -6,6 +6,9 @@ const sqlite3 = require('sqlite3');
 const os = require('os');
 const fs = require('fs');
 const { exec } = require('child_process');
+const path = require('path');
+const ptp = require('pdf-to-printer');
+const htmlPdf = require('html-pdf-node');
 
 const app = express();
 app.use(cors());
@@ -51,6 +54,156 @@ console.table([
     }
 ]);
 let db;
+
+let colaImpresionBackend = Promise.resolve();
+
+function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
+    // Encadenamos la tarea a la cola: cada ticket espera a que termine el anterior
+    colaImpresionBackend = colaImpresionBackend.then(async () => {
+        const idUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const htmlTemp = path.join(os.tmpdir(), `ticket_${idUnico}.html`);
+        const pdfTemp = path.join(os.tmpdir(), `ticket_${idUnico}.pdf`);
+        const perfilChromeTemp = path.join(os.tmpdir(), 'tukan_chrome_profile');
+
+        try {
+            const htmlFinal = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { 
+        size: 80mm 120mm; 
+        margin: 0 !important; 
+    }
+    body {
+        width: 72mm;
+        margin-top: 0mm !important;
+        padding: 0 2px !important;
+        font-family: monospace;
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 1.3;
+        color: black;
+        background: white;
+    }
+    div, p, span {
+        color: black !important;
+    }
+</style>
+</head>
+<body>
+    ${htmlContent}
+</body>
+</html>`;
+
+            fs.writeFileSync(htmlTemp, htmlFinal, 'utf8');
+
+            const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
+                ? '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
+                : '"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"';
+
+            // --user-data-dir aísla este proceso de las ventanas abiertas en el escritorio
+            const comando = `${chromePath} --headless --disable-gpu --no-pdf-header-footer --user-data-dir="${perfilChromeTemp}" --print-to-pdf="${pdfTemp}" "${htmlTemp}"`;
+
+            // Ejecución síncrona/promificada del comando Chrome
+            await new Promise((resolve, reject) => {
+                exec(comando, (error) => {
+                    if (error) reject(error);
+                    else resolve();
+                });
+            });
+
+            // Envío secuencial y seguro al spooler de Windows
+            await ptp.print(pdfTemp, {
+                printer: nombreImpresora,
+                scale: "noscale"
+            });
+
+        } catch (err) {
+            console.error(`❌ Error en cola de impresión para [${nombreImpresora}]:`, err.message);
+        } finally {
+            // Limpieza segura de temporales
+            try {
+                if (fs.existsSync(htmlTemp)) fs.unlinkSync(htmlTemp);
+                if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
+            } catch (e) { /* Si Windows aún tiene el handle, se limpiará en el siguiente reinicio */ }
+        }
+    }).catch(errGeneral => {
+        console.error("❌ Error inesperado en cola de impresión:", errGeneral);
+    });
+}
+
+
+// async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
+//     try {
+//         const idUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+//         const htmlTemp = path.join(os.tmpdir(), `ticket_${idUnico}.html`);
+//         const pdfTemp = path.join(os.tmpdir(), `ticket_${idUnico}.pdf`);
+
+//         const htmlFinal = `<!DOCTYPE html>
+// <html>
+// <head>
+// <meta charset="UTF-8">
+// <style>
+//     @page { 
+//         size: 80mm 120mm; 
+//         margin: 0 !important;; 
+//     }
+//     body {
+//         width: 72mm;
+//         margin-top: 0mm !important;
+//         padding: 0 2px !important;
+//         font-family: monospace;
+//         font-size: 20px;
+//         font-weight: bold;
+//         line-height: 1.3;
+//         color: black;
+//         background: white;
+//     }
+//     div, p, span {
+//         color: black !important;
+//     }
+// </style>
+// </head>
+// <body>
+//     ${htmlContent}
+// </body>
+// </html>`;
+
+//         fs.writeFileSync(htmlTemp, htmlFinal, 'utf8');
+
+//         const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
+//             ? '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
+//             : '"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"';
+
+//         // Genera el PDF forzando fondo blanco y sin encabezados
+//         const comando = `${chromePath} --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="${pdfTemp}" "${htmlTemp}"`;
+
+//         exec(comando, async (error) => {
+//             if (error) {
+//                 console.error(`❌ Error generando PDF para ${nombreImpresora}:`, error.message);
+//                 return;
+//             }
+
+//             try {
+//                 // Envía el PDF directamente al driver de la impresora térmica
+//                 await ptp.print(pdfTemp, {
+//                     printer: nombreImpresora,
+//                     scale: "noscale"
+//                 });
+//             } catch (errPrint) {
+//                 console.error(`❌ Error enviando a ${nombreImpresora}:`, errPrint.message);
+//             }
+
+//             setTimeout(() => {
+//                 if (fs.existsSync(htmlTemp)) fs.unlinkSync(htmlTemp);
+//                 if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
+//             }, 10000);
+//         });
+//     } catch (err) {
+//         console.error(`❌ Error general en ${nombreImpresora}:`, err.message);
+//     }
+// }
 
 let comandasCocinaActivas = [];
 let comandasBarraActivas = [];
@@ -249,6 +402,51 @@ app.post('/enviar_comanda', async (req, res) => {
 
         await db.run('COMMIT');
 
+        // 🖨️ Impresión Silenciosa por Backend
+        const modoCocinaVal = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_cocina'");
+        const modoBarraVal = await db.get("SELECT valor FROM variables_sistema WHERE clave = 'modo_pantalla_barra'");
+
+        if (elementosCocina.length > 0 && modoCocinaVal && modoCocinaVal.valor === 'impresora') {
+            const itemsHtmlCocina = elementosCocina.map(i => {
+                const mods = JSON.parse(i.modificadores || '[]');
+                let sub = mods.map(m => `  + ${m.nombre}`).join('<br>');
+                if (i.nota) sub += (sub ? '<br>' : '') + `  * NOTA: ${i.nota}`;
+                return `<div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">x1 ${i.display}</div>` +
+                       (sub ? `<div style="font-size: 11px; margin-left: 12px; margin-bottom: 4px;">${sub}</div>` : '');
+            }).join('<br>');
+
+            const htmlCocina = `
+                <div style="font-family: monospace; text-align: center; color: black; width: 100%;">
+                    <p style="font-weight: bold; border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 6px;">*** COMANDA COCINA ***</p>
+                    <p style="font-size: 18px; font-weight: bold; text-transform: uppercase; margin: 4px 0;">${mesa}</p>
+                    <p style="font-size: 14px; margin-bottom: 10px;">${new Date().toLocaleDateString('es-MX')} | ${horaActual}</p>
+                    <div style="text-align: left; font-size: 12px; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px;">${itemsHtmlCocina}</div>
+                    <p style="font-size: 12px; color: #555;">--- SISTEMA TUKAN POS ---</p>
+                </div>
+            `;
+            imprimirTicketSilencioso(htmlCocina, 'COCINA');
+        }
+
+        if (elementosBarra.length > 0 && modoBarraVal && modoBarraVal.valor === 'impresora') {
+            const itemsHtmlBarra = elementosBarra.map(i => {
+                const mods = JSON.parse(i.modificadores || '[]');
+                let sub = mods.map(m => `  + ${m.nombre}`).join('<br>');
+                if (i.nota) sub += (sub ? '<br>' : '') + `  * NOTA: ${i.nota}`;
+                return `<div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">x1 ${i.display}</div>` +
+                       (sub ? `<div style="font-size: 11px; margin-left: 12px; margin-bottom: 4px;">${sub}</div>` : '');
+            }).join('<br>');
+
+            const htmlBarra = `
+                <div style="font-family: monospace; text-align: center; color: black; width: 100%;">
+                    <p style="font-weight: bold; border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 6px;">*** COMANDA BARRA ***</p>
+                    <p style="font-size: 18px; font-weight: bold; text-transform: uppercase; margin: 4px 0;">${mesa}</p>
+                    <p style="font-size: 14px; margin-bottom: 10px;">${new Date().toLocaleDateString('es-MX')} | ${horaActual}</p>
+                    <div style="text-align: left; font-size: 12px; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px;">${itemsHtmlBarra}</div>
+                </div>
+            `;
+            imprimirTicketSilencioso(htmlBarra, 'BARRA');
+        }
+
         res.json({ status: "ok" });
     } catch (e) {
         await db.run('ROLLBACK');
@@ -446,6 +644,27 @@ app.post('/api/cobrar_parcial', async (req, res) => {
             html: avisoTicket
         });
 
+        const rutaLogo = path.join(__dirname, 'resources', 'tukan-logo-ticket.png');
+        const logoBase64 = fs.existsSync(rutaLogo) ? `data:image/png;base64,${fs.readFileSync(rutaLogo).toString('base64')}` : '';
+
+        // const reciboHtmlImpresion = `
+        //     <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.2;">
+        //         ${logoBase64 ? `<img src="${logoBase64}" style="width: 120px; height: auto; margin-bottom: 4px;">` : ''}
+        //         <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
+        //         <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
+        //         <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${avisoTicket}</div>
+        //     </div>
+        // `;
+        const reciboHtmlImpresion = `
+            <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.2;">
+                ${logoBase64 ? `<img src="${logoBase64}" style="width: 170px; height: auto; margin: 0 auto 6px auto; display: block;">` : ''}
+                <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
+                <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
+                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 14px; line-height: 1.3; text-transform: uppercase;">${avisoTicket}</div>
+            </div>
+        `;
+        imprimirTicketSilencioso(reciboHtmlImpresion, 'BARRA');
+
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)',
             [`${mesa} (PARCIAL)`, totalParcial, detalleTicketParcial]
         );
@@ -522,6 +741,27 @@ app.post('/cerrar_cuenta', async (req, res) => {
             tipo: "CUENTA TOTAL",
             html: ticketHtmlCompleto
         });
+
+        const rutaLogo = path.join(__dirname, 'resources', 'tukan-logo-ticket.png');
+        const logoBase64 = fs.existsSync(rutaLogo) ? `data:image/png;base64,${fs.readFileSync(rutaLogo).toString('base64')}` : '';
+
+        // const reciboHtmlImpresion = `
+        //     <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.1;">
+        //         ${logoBase64 ? `<img src="${logoBase64}" style="width: 120px; height: auto; margin-bottom: 4px;">` : ''}
+        //         <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
+        //         <p style="font-size: 11px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
+        //         <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${ticketHtmlCompleto}</div>
+        //     </div>
+        // `;
+        const reciboHtmlImpresion = `
+            <div style="font-family: monospace; text-align: center; color: black; width: 100%; line-height: 1.2;">
+                ${logoBase64 ? `<img src="${logoBase64}" style="width: 170px; height: auto; margin: 0 auto 6px auto; display: block;">` : ''}
+                <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 2px;">Insurgentes número 16, Tamazulapam Oax</p>
+                <p style="font-size: 12px; font-weight: bold; border-bottom: 1px solid black; padding-bottom: 2px; margin-bottom: 6px;">Tel. 953 131 8564</p>
+                <div style="text-align: left; border-bottom: 1px solid black; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; font-size: 14px; line-height: 1.3; text-transform: uppercase;">${ticketHtmlCompleto}</div>
+            </div>
+        `;
+        imprimirTicketSilencioso(reciboHtmlImpresion, 'BARRA');
 
         await db.run('INSERT INTO historial_ventas (mesa, total, detalle) VALUES (?, ?, ?)', [mesa, total, detalleTicket]);
         await db.run('DELETE FROM pedidos_activos WHERE mesa = ?', [mesa]);

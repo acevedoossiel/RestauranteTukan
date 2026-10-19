@@ -12,6 +12,8 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "html-pdf-node": "^1.0.8",
+    "pdf-to-printer": "^5.6.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1"
   }

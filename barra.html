@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Barra - Tukan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+     <script src="tailwind.min.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -95,12 +96,24 @@
 
         }
 
+        // async function verificarRecibosCaja() {
+        //     try {
+        //         const res = await fetch(`${API}/api/sistema/cola_recibos`);
+        //         const recibos = await res.json();
+        //         if (recibos && recibos.length > 0) {
+        //             ejecutarImpresionReciboCaja(recibos[0]);
+        //         }
+        //     } catch (err) { console.error(err); }
+        // }
+
         async function verificarRecibosCaja() {
             try {
                 const res = await fetch(`${API}/api/sistema/cola_recibos`);
                 const recibos = await res.json();
                 if (recibos && recibos.length > 0) {
-                    ejecutarImpresionReciboCaja(recibos[0]);
+                    for (let r of recibos) {
+                        await fetch(`${API}/api/sistema/cola_recibos/${r.id}`, { method: 'DELETE' });
+                    }
                 }
             } catch (err) { console.error(err); }
         }
@@ -115,7 +128,7 @@
                                 print-color-adjust: exact !important;
                                 filter: contrast(200%) brightness(80%) grayscale(100%);">
                     <p class="text-xs font-black border-b border-black pb-1 mb-1" style="margin-top: 2px !important; padding-top: 0 !important;">Insurgentes número 16, Tamazulapam Oax</p>
-                    <p class="text-xs font-black border-b border-black pb-1 mb-2">Tel. 953 212 4618</p>
+                    <p class="text-xs font-black border-b border-black pb-1 mb-2">Tel. 953 131 8564</p>
                     <div class="text-left border-b border-black pb-2 mb-2 font-black text-xs uppercase leading-relaxed">${recibo.html}</div>
                 </div>
             `;
@@ -138,11 +151,20 @@
                 const res = await fetch(`${API}/api/comandas/barra`);
                 const comandas = await res.json();
 
+                // if (modoOperacion === 'impresora' && comandas.length > 0) {
+                //     for (let c of comandas) {
+                //         if (!idsComandasProcesadas.has(c.id)) {
+                //             idsComandasProcesadas.add(c.id);
+                //             ejecutarImpresionTermica(c);
+                //         }
+                //     }
+                // }
+                // AHORA:
                 if (modoOperacion === 'impresora' && comandas.length > 0) {
                     for (let c of comandas) {
                         if (!idsComandasProcesadas.has(c.id)) {
                             idsComandasProcesadas.add(c.id);
-                            ejecutarImpresionTermica(c);
+                            marcarCompletada(c.id); 
                         }
                     }
                 }
