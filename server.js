@@ -26,14 +26,30 @@ for (let devName in interfaces) {
 const contenidoConfig = `const CONFIG = {\n    API_URL: 'http://${ipLocalReal}:3000'\n};`;
 fs.writeFileSync('./config.js', contenidoConfig, 'utf8');
 
-console.log("\n=========================================================");
-console.log(`✨ IP DETECTADA: ${ipLocalReal}`);
-console.log(` MESEROS DEBEN CONECTARSE A: http://${ipLocalReal}:3000/index.html`);
-console.log(` ADMIN DEBEN CONECTARSE A: http://${ipLocalReal}:3000/admin_panel.html`);
-console.log(` COCINA DEBE CONECTARSE A: http://${ipLocalReal}:3000/cocina.html`);
-console.log(` BARRA DEBEN CONECTARSE A: http://${ipLocalReal}:3000/barra.html`);
-console.log("=========================================================\n");
+console.log(`\n IP DETECTADA: ${ipLocalReal}\n`);
 
+console.table([
+    {
+        'Pantalla': 'MESEROS',
+        'Acceso en Red (Wi-Fi)': `http://${ipLocalReal}:3000/index.html`,
+        'Acceso Local (Esta Laptop)': 'http://localhost:3000/index.html'
+    },
+    {
+        'Pantalla': 'ADMIN',
+        'Acceso en Red (Wi-Fi)': `http://${ipLocalReal}:3000/admin_panel.html`,
+        'Acceso Local (Esta Laptop)': 'http://localhost:3000/admin_panel.html'
+    },
+    {
+        'Pantalla': 'COCINA',
+        'Acceso en Red (Wi-Fi)': `http://${ipLocalReal}:3000/cocina.html`,
+        'Acceso Local (Esta Laptop)': 'http://localhost:3000/cocina.html'
+    },
+    {
+        'Pantalla': 'BARRA',
+        'Acceso en Red (Wi-Fi)': `http://${ipLocalReal}:3000/barra.html`,
+        'Acceso Local (Esta Laptop)': 'http://localhost:3000/barra.html'
+    }
+]);
 let db;
 
 let comandasCocinaActivas = [];
