@@ -104,7 +104,7 @@ function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
                 : '"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"';
 
             // --user-data-dir aísla este proceso de las ventanas abiertas en el escritorio
-            const comando = `${chromePath} --headless --disable-gpu --no-pdf-header-footer --user-data-dir="${perfilChromeTemp}" --print-to-pdf="${pdfTemp}" "${htmlTemp}"`;
+            const comando = `${chromePath} --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="${pdfTemp}" "${htmlTemp}"`;
 
             // Ejecución síncrona/promificada del comando Chrome
             await new Promise((resolve, reject) => {
@@ -125,8 +125,12 @@ function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
         } finally {
             try {
                 if (fs.existsSync(htmlTemp)) fs.unlinkSync(htmlTemp);
-                if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
-                if (fs.existsSync(perfilChromeTemp)) fs.rmSync(perfilChromeTemp, { recursive: true, force: true });
+                setTimeout(() => {
+                    try {
+                        if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
+                        if (fs.existsSync(perfilChromeTemp)) fs.rmSync(perfilChromeTemp, { recursive: true, force: true });
+                    } catch (e) { }
+                }, 15000);
             } catch (e) { }
         }
     }).catch(errGeneral => {

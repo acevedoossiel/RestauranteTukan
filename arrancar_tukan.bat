@@ -1,38 +1,21 @@
 @echo off
-
-:: 1. Auto-elevar permisos a Administrador
-net session >nul 2>&1
-if %errorLevel% neq 0 (
-    powershell -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
-
-cd /d "%~dp0"
-
-title Servidor El Tukan
-color 0A
+title Servidor El Tukan POS
+color 6
 cls
 
+:: Nos posicionamos en la carpeta exacta del proyecto
+cd /d "%~dp0"
+
 echo =========================================================
-echo       INICIALIZANDO SISTEMA TUKAN
+echo       INICIANDO SISTEMA EL TUKAN
 echo =========================================================
 echo.
 
-:: 2. Reiniciar el servicio de impresion para despertar puertos USB
-echo [*] Reiniciando servicio de impresion (Spooler)...
-net stop spooler > nul 2>&1
-net start spooler > nul 2>&1
-
-:: 3. Levantamos el servidor de Node.js en segundo plano de fondo
-echo [*] Encendiendo el backend y actualizando IP local...
+:: 1. Levantamos Node.js en segundo plano dentro de esta misma sesion
 start /b node server.js
 
-:: 4. Esperamos 8 segundos a que el sistema y servicios se estabilicen
-echo [*] Esperando inicio de servicios...
-timeout /t 8 /nobreak > nul
+:: 2. Breve pausa para asegurar el montaje del servidor local
+timeout /t 3 /nobreak > nul
 
-
-echo.
-echo [OK] Todo el sistema se encuentra listo
-echo.
-pause
+:: 3. Abrimos directamente la interfaz de mesero
+start chrome --new-window http://localhost:3000/index.html http://localhost:3000/admin_panel.html
