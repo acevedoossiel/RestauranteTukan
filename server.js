@@ -63,7 +63,8 @@ function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
         const idUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
         const htmlTemp = path.join(os.tmpdir(), `ticket_${idUnico}.html`);
         const pdfTemp = path.join(os.tmpdir(), `ticket_${idUnico}.pdf`);
-        const perfilChromeTemp = path.join(os.tmpdir(), 'tukan_chrome_profile');
+        // const perfilChromeTemp = path.join(os.tmpdir(), 'tukan_chrome_profile');
+        const perfilChromeTemp = path.join(os.tmpdir(), `tukan_chrome_${idUnico}`);
 
         try {
             const htmlFinal = `<!DOCTYPE html>
@@ -122,11 +123,11 @@ function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
         } catch (err) {
             console.error(`❌ Error en cola de impresión para [${nombreImpresora}]:`, err.message);
         } finally {
-            // Limpieza segura de temporales
             try {
                 if (fs.existsSync(htmlTemp)) fs.unlinkSync(htmlTemp);
                 if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
-            } catch (e) { /* Si Windows aún tiene el handle, se limpiará en el siguiente reinicio */ }
+                if (fs.existsSync(perfilChromeTemp)) fs.rmSync(perfilChromeTemp, { recursive: true, force: true });
+            } catch (e) { }
         }
     }).catch(errGeneral => {
         console.error("❌ Error inesperado en cola de impresión:", errGeneral);
@@ -134,76 +135,6 @@ function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
 }
 
 
-// async function imprimirTicketSilencioso(htmlContent, nombreImpresora) {
-//     try {
-//         const idUnico = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
-//         const htmlTemp = path.join(os.tmpdir(), `ticket_${idUnico}.html`);
-//         const pdfTemp = path.join(os.tmpdir(), `ticket_${idUnico}.pdf`);
-
-//         const htmlFinal = `<!DOCTYPE html>
-// <html>
-// <head>
-// <meta charset="UTF-8">
-// <style>
-//     @page { 
-//         size: 80mm 120mm; 
-//         margin: 0 !important;; 
-//     }
-//     body {
-//         width: 72mm;
-//         margin-top: 0mm !important;
-//         padding: 0 2px !important;
-//         font-family: monospace;
-//         font-size: 20px;
-//         font-weight: bold;
-//         line-height: 1.3;
-//         color: black;
-//         background: white;
-//     }
-//     div, p, span {
-//         color: black !important;
-//     }
-// </style>
-// </head>
-// <body>
-//     ${htmlContent}
-// </body>
-// </html>`;
-
-//         fs.writeFileSync(htmlTemp, htmlFinal, 'utf8');
-
-//         const chromePath = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
-//             ? '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"'
-//             : '"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"';
-
-//         // Genera el PDF forzando fondo blanco y sin encabezados
-//         const comando = `${chromePath} --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="${pdfTemp}" "${htmlTemp}"`;
-
-//         exec(comando, async (error) => {
-//             if (error) {
-//                 console.error(`❌ Error generando PDF para ${nombreImpresora}:`, error.message);
-//                 return;
-//             }
-
-//             try {
-//                 // Envía el PDF directamente al driver de la impresora térmica
-//                 await ptp.print(pdfTemp, {
-//                     printer: nombreImpresora,
-//                     scale: "noscale"
-//                 });
-//             } catch (errPrint) {
-//                 console.error(`❌ Error enviando a ${nombreImpresora}:`, errPrint.message);
-//             }
-
-//             setTimeout(() => {
-//                 if (fs.existsSync(htmlTemp)) fs.unlinkSync(htmlTemp);
-//                 if (fs.existsSync(pdfTemp)) fs.unlinkSync(pdfTemp);
-//             }, 10000);
-//         });
-//     } catch (err) {
-//         console.error(`❌ Error general en ${nombreImpresora}:`, err.message);
-//     }
-// }
 
 let comandasCocinaActivas = [];
 let comandasBarraActivas = [];
