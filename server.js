@@ -1192,4 +1192,16 @@ app.get('/api/sistema/ventas_corte/:corte_id', async (req, res) => {
     }
 });
 
-app.listen(3000, '0.0.0.0', () => console.log("🚀 Servidor Tukan activo en puerto 3000"));
+app.listen(3000, '0.0.0.0', () => console.log("Servidor Tukan activo"));
+
+setTimeout(() => {
+    const miniNota = (nombre) => `
+        <div style="font-family: monospace; text-align: center; font-size: 14px; font-weight: bold; color: black; line-height: 1.3;">
+            SISTEMA TUKAN ACTIVO<br>
+            ${nombre} LISTA<br>
+            ----------------------
+        </div>
+    `;
+    imprimirTicketSilencioso(miniNota('COCINA'), 'COCINA');
+    imprimirTicketSilencioso(miniNota('BARRA'), 'BARRA');
+}, 4000);

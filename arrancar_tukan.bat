@@ -1,33 +1,38 @@
 @echo off
-title Servidor El Tukan POS
+
+:: 1. Auto-elevar permisos a Administrador
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
+cd /d "%~dp0"
+
+title Servidor El Tukan
 color 0A
 cls
 
 echo =========================================================
-echo       INICIANDO SISTEMA COMERCIAL EL TUKAN
+echo       INICIALIZANDO SISTEMA TUKAN
 echo =========================================================
 echo.
 
-:: 1. Levantamos el servidor de Node.js en segundo plano de fondo
+:: 2. Reiniciar el servicio de impresion para despertar puertos USB
+echo [*] Reiniciando servicio de impresion (Spooler)...
+net stop spooler > nul 2>&1
+net start spooler > nul 2>&1
+
+:: 3. Levantamos el servidor de Node.js en segundo plano de fondo
 echo [*] Encendiendo el backend y actualizando IP local...
 start /b node server.js
 
-:: 2. Esperamos 3 segundos a que el servidor cree el config.js y monte la base de datos
-timeout /t 3 /nobreak > null
+:: 4. Esperamos 8 segundos a que el sistema y servicios se estabilicen
+echo [*] Esperando inicio de servicios...
+timeout /t 8 /nobreak > nul
 
-:: 3. Abrimos las pantallas obligatorias del negocio en ventanas limpias independientes (--app)
-echo [*] Desplegando monitores de produccion en hardware...
-
-:: Panel de Administración
-start chrome --app=http://localhost:3000/admin_panel.html
-
-:: Monitor de Barra (En su ventana dedicada para que no se congele el timer)
-start chrome --app=http://localhost:3000/barra.html
-
-:: Monitor de Cocina
-start chrome --app=http://localhost:3000/cocina.html
 
 echo.
-echo [OK] Todo el sistema se encuentra activo y listo para operar.
+echo [OK] Todo el sistema se encuentra listo
 echo.
 pause
